@@ -49,6 +49,7 @@ interface Player {
   time: string;
   posicoes: string[];
   imagem?: string;
+  valorMercado?: string;
 }
 
 interface ScraperResult {
@@ -223,6 +224,16 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
         const imageTag = nameCell.find('img').first();
         const imageUrl = imageTag.length > 0 ? imageTag.attr('src') : undefined;
 
+        // Valor de Mercado
+        let marketValue: string | undefined = undefined;
+        if (cells.length > 6) {
+          const marketCell = $(cells[6]);
+          const marketText = marketCell.text().trim();
+          if (marketText) {
+            marketValue = marketText;
+          }
+        }
+
         const player: Player = {
           nome: name,
           idade: age,
@@ -230,7 +241,8 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
           potencial: potential,
           time: team,
           posicoes: positions,
-          imagem: imageUrl
+          imagem: imageUrl,
+          valorMercado: marketValue
         };
 
         players.push(player);

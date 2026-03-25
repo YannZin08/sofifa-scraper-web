@@ -31,3 +31,4 @@
 ## Bugs Encontrados
 - [x] Corrigir erro "Failed to parse URL from /api/scraper/extract" - refatorar tRPC procedure para chamar Python diretamente
 - [x] Corrigir erro de mismatch do módulo SRE do Python - usar python3.11 explicitamente
+- [x] Corrigir erro persistente de SRE module mismatch - refatorar para usar Node.js puro com axios e cheerio

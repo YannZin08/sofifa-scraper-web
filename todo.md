@@ -45,4 +45,3 @@
 - [x] Adicionar instalacao automatica do Chrome como padrao no projeto
 - [x] Corrigir erro de dependencias de sistema do Chrome (libglib-2.0)
 - [x] Refatorar scraper para nao depender de Puppeteer/navegador headless
-- [x] Implementar suporte a proxy para contornar bloqueio 403 do SoFIFA

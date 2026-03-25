@@ -72,6 +72,16 @@ function getRandomUserAgent(): string {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
+// Lista de proxies públicos para contornar bloqueios
+const PROXIES = [
+  'https://api.codetabs.com/v1/proxy?quest=',
+  'https://cors-anywhere.herokuapp.com/',
+];
+
+function getRandomProxy(): string {
+  return PROXIES[Math.floor(Math.random() * PROXIES.length)];
+}
+
 async function fetchPageWithRetry(url: string, maxRetries: number = 5): Promise<string> {
   let lastError: Error | null = null;
 
@@ -83,7 +93,15 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 5): Promise<
         await new Promise(resolve => setTimeout(resolve, delay));
       }
 
-      const response = await axios.get(url, {
+      // Usar proxy a partir da segunda tentativa
+      let requestUrl = url;
+      if (attempt >= 1) {
+        const proxy = getRandomProxy();
+        requestUrl = proxy + encodeURIComponent(url);
+        console.log(`Tentativa ${attempt + 1}: Usando proxy`);
+      }
+
+      const response = await axios.get(requestUrl, {
         headers: {
           'User-Agent': getRandomUserAgent(),
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',

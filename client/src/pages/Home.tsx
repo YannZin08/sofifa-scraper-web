@@ -13,6 +13,7 @@ interface Player {
   potencial: number | string;
   time: string;
   posicoes: string[];
+  nacionalidade: string;
   imagem?: string;
   valorMercado?: string;
 }
@@ -88,7 +89,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">SoFIFA Web Scraper</h1>
@@ -163,19 +164,27 @@ export default function Home() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Foto</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
+                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Nacionalidade</th>
                       <th className="text-center py-3 px-4 font-semibold text-slate-700">Idade</th>
                       <th className="text-center py-3 px-4 font-semibold text-slate-700">Overall</th>
                       <th className="text-center py-3 px-4 font-semibold text-slate-700">Potencial</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Time</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Valor Mercado</th>
+                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Preço</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Posições</th>
                     </tr>
                   </thead>
                   <tbody>
                     {players.map((player, idx) => (
                       <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-3 px-4">
+                          {player.imagem && (
+                            <img src={player.imagem} alt={player.nome} className="w-10 h-10 rounded-full border border-slate-200" />
+                          )}
+                        </td>
                         <td className="py-3 px-4 text-slate-900 font-medium">{player.nome}</td>
+                        <td className="py-3 px-4 text-center text-slate-700">{player.nacionalidade}</td>
                         <td className="py-3 px-4 text-center text-slate-700">{player.idade}</td>
                         <td className="py-3 px-4 text-center">
                           <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">

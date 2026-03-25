@@ -34,6 +34,7 @@ interface Player {
   potencial: number | string;
   time: string;
   posicoes: string[];
+  nacionalidade: string;
   imagem?: string;
   valorMercado?: string;
 }
@@ -81,10 +82,16 @@ function extractPlayers(html: string): Player[] {
       const imagem = cells.eq(0).find('img').attr('data-src') || 
                      cells.eq(0).find('img').attr('src');
 
-      // Coluna 2 (Índice 1): Nome e Posições
+      // Coluna 2 (Índice 1): Nome, Nacionalidade e Posições
       const nameCell = cells.eq(1);
-      // Pega apenas o texto do link que contém "/player/", ignorando spans das posições
+      
+      // Nome do jogador (dentro do link que contém "/player/")
       const nome = nameCell.find('a[href*="/player/"]').first().text().trim();
+      
+      // Nacionalidade (está no atributo title da imagem da bandeira)
+      const nacionalidade = nameCell.find('img.flag').attr('title') || 
+                            nameCell.find('img[src*="/flags/"]').attr('title') || 
+                            'N/A';
       
       // Posições estão em spans com classe .pos dentro da mesma célula do nome
       const posicoes: string[] = [];
@@ -108,7 +115,6 @@ function extractPlayers(html: string): Player[] {
       const time = cells.eq(5).find('a[href*="/team/"]').first().text().trim();
       
       // Coluna 7 (Índice 6): Valor de Mercado (Preço)
-      // O SoFIFA coloca o preço na coluna 7 (índice 6) na visualização padrão
       const valorMercado = cells.eq(6).text().trim();
 
       if (nome && overall) {
@@ -119,6 +125,7 @@ function extractPlayers(html: string): Player[] {
           potencial: isNaN(Number(potencial)) ? potencial : Number(potencial),
           time,
           posicoes,
+          nacionalidade,
           imagem,
           valorMercado,
         });

@@ -43,3 +43,4 @@
 - [x] Adicionar extracao do valor de mercado dos jogadores ao JSON
 - [x] Adicionar visualizacao do valor de mercado na tabela de resultados
 - [x] Adicionar instalacao automatica do Chrome como padrao no projeto
+- [x] Corrigir erro de dependencias de sistema do Chrome (libglib-2.0)

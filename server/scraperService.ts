@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { load } from 'cheerio';
 
 // Mapeamento de posicoes do ingles para portugues abreviado conforme padroes do site
@@ -59,51 +59,88 @@ interface ScraperResult {
   count?: number;
 }
 
-// Lista de User-Agents para rotacionar
+// Lista expandida de User-Agents para rotacionar
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0',
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
 ];
 
 function getRandomUserAgent(): string {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
-async function fetchPageWithRetry(url: string, maxRetries: number = 5): Promise<string> {
+// Simular comportamento de usuário real com delays variáveis
+async function randomDelay(min: number = 500, max: number = 2000): Promise<void> {
+  const delay = Math.random() * (max - min) + min;
+  await new Promise(resolve => setTimeout(resolve, delay));
+}
+
+async function fetchPageWithRetry(url: string, maxRetries: number = 8): Promise<string> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const delay = Math.min(1000 * Math.pow(2, attempt), 10000); // Exponential backoff
+      // Delay progressivo com variação aleatória
       if (attempt > 0) {
-        console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        const baseDelay = Math.min(2000 * Math.pow(1.5, attempt - 1), 15000);
+        const randomVariation = Math.random() * 2000 - 1000; // -1000 a +1000ms
+        const totalDelay = Math.max(1000, baseDelay + randomVariation);
+        
+        console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${Math.round(totalDelay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, totalDelay));
       }
 
+      // Headers realistas que simulam navegador real
+      const headers = {
+        'User-Agent': getRandomUserAgent(),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'max-age=0',
+        'Pragma': 'no-cache',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Referer': 'https://www.google.com/',
+      };
+
       const response = await axios.get(url, {
-        headers: {
-          'User-Agent': getRandomUserAgent(),
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'DNT': '1',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Cache-Control': 'max-age=0',
-          'Referer': 'https://sofifa.com/',
-        },
-        timeout: 30000,
-        validateStatus: (status) => status < 500, // Não lançar erro para 4xx
+        headers,
+        timeout: 45000,
+        validateStatus: (status) => status < 500,
+        maxRedirects: 5,
       });
 
       if (response.status === 403) {
         lastError = new Error('O SoFIFA está bloqueando requisições. Tente novamente em alguns segundos ou use um VPN.');
+        
+        // Delay maior antes de retry em caso de 403
+        if (attempt < maxRetries - 1) {
+          await randomDelay(3000, 5000);
+        }
+        continue;
+      }
+
+      if (response.status === 429) {
+        lastError = new Error('Muitas requisições. Aguardando antes de tentar novamente...');
+        
+        // Delay muito maior para rate limiting
+        if (attempt < maxRetries - 1) {
+          await randomDelay(5000, 10000);
+        }
         continue;
       }
 
@@ -115,6 +152,7 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 5): Promise<
       return response.data;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`Tentativa ${attempt + 1} falhou:`, lastError.message);
       
       if (attempt === maxRetries - 1) {
         break;

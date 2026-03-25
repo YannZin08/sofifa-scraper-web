@@ -33,3 +33,4 @@
 - [x] Corrigir erro de mismatch do módulo SRE do Python - usar python3.11 explicitamente
 - [x] Corrigir erro persistente de SRE module mismatch - refatorar para usar Node.js puro com axios e cheerio
 - [x] Corrigir erro 403 - adicionar suporte a proxy e melhorar headers
+- [x] Contornar proteção anti-bot do SoFIFA - implementar Puppeteer com navegador headless

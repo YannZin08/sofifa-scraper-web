@@ -1,7 +1,5 @@
-import axios from 'axios';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import { load } from 'cheerio';
-import { HttpProxyAgent } from 'http-proxy-agent';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 
 interface Player {
   nome: string;
@@ -19,76 +17,90 @@ interface ScraperResult {
   count?: number;
 }
 
-// Lista de proxies públicos gratuitos (podem ser instáveis)
-const PROXY_LIST = [
-  'http://proxy.example.com:8080', // Placeholder - será substituído por proxies reais se necessário
-];
+let browser: Browser | null = null;
 
-async function fetchWithRetry(url: string, maxRetries = 3): Promise<string> {
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-    'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'DNT': '1',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Sec-Fetch-User': '?1',
-    'Cache-Control': 'max-age=0',
-  };
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      // Tentar sem proxy primeiro
-      if (attempt === 0) {
-        const response = await axios.get(url, {
-          headers,
-          timeout: 15000,
-          maxRedirects: 5,
-        });
-        return response.data;
-      }
-
-      // Se falhar, tentar com diferentes estratégias
-      if (attempt === 1) {
-        // Tentar com referer
-        const response = await axios.get(url, {
-          headers: {
-            ...headers,
-            'Referer': 'https://sofifa.com/',
-          },
-          timeout: 15000,
-          maxRedirects: 5,
-        });
-        return response.data;
-      }
-
-      // Tentar com cookie session simulado
-      if (attempt === 2) {
-        const response = await axios.get(url, {
-          headers: {
-            ...headers,
-            'Referer': 'https://sofifa.com/',
-            'Cookie': 'session=dummy; path=/',
-          },
-          timeout: 15000,
-          maxRedirects: 5,
-        });
-        return response.data;
-      }
-    } catch (error) {
-      if (attempt === maxRetries - 1) {
-        throw error;
-      }
-      // Aguardar um pouco antes de tentar novamente
-      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-    }
+async function getBrowser(): Promise<Browser> {
+  if (browser) {
+    return browser;
   }
 
-  throw new Error('Todas as tentativas falharam');
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-extensions',
+      ],
+    });
+    return browser;
+  } catch (error) {
+    throw new Error(`Falha ao iniciar navegador: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+  }
+}
+
+async function scrapePage(url: string): Promise<string> {
+  let page: Page | null = null;
+
+  try {
+    const browserInstance = await getBrowser();
+    page = await browserInstance.newPage();
+
+    // Configurar User-Agent
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    );
+
+    // Configurar headers
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'DNT': '1',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+    });
+
+    // Definir timeout
+    page.setDefaultNavigationTimeout(30000);
+    page.setDefaultTimeout(30000);
+
+    // Navegar para a URL
+    await page.goto(url, {
+      waitUntil: 'networkidle2',
+      timeout: 30000,
+    });
+
+    // Aguardar a tabela carregar
+    await page.waitForSelector('tbody', { timeout: 10000 }).catch(() => {
+      // Se a tabela não carregar, continua mesmo assim
+    });
+
+    // Simular scroll para carregar conteúdo dinâmico
+    await page.evaluate(() => {
+      window.scrollBy(0, window.innerHeight);
+    });
+
+    // Aguardar um pouco para certeza
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Obter o HTML da página
+    const html = await page.content();
+    return html;
+  } catch (error) {
+    throw new Error(`Erro ao acessar página: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+  } finally {
+    if (page) {
+      try {
+        await page.close();
+      } catch (err) {
+        console.error('Erro ao fechar página:', err);
+      }
+    }
+  }
 }
 
 export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
@@ -104,19 +116,9 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
 
     let html: string;
     try {
-      html = await fetchWithRetry(url);
+      html = await scrapePage(url);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-      
-      // Se for erro 403, tentar com estratégia alternativa
-      if (errorMsg.includes('403')) {
-        return {
-          success: false,
-          error: 'O SoFIFA está bloqueando requisições. Tente novamente em alguns segundos ou use um VPN.',
-          players: []
-        };
-      }
-
       return {
         success: false,
         error: `Erro ao acessar a URL: ${errorMsg}`,
@@ -214,3 +216,14 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
     };
   }
 }
+
+// Limpar recursos ao desligar
+process.on('exit', async () => {
+  if (browser) {
+    try {
+      await browser.close();
+    } catch (err) {
+      console.error('Erro ao fechar navegador:', err);
+    }
+  }
+});

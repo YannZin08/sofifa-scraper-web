@@ -41,3 +41,4 @@
 - [x] Atualizar mapeamento de posicoes com as posicoes exatas do site (GOL, ZAG, LD, LE, ADD, ADE, VOL, MC, MEI, MD, ME, PD, PE, ATA, SA)
 - [x] Adicionar extracao de URL da imagem do jogador ao JSON
 - [x] Adicionar extracao do valor de mercado dos jogadores ao JSON
+- [x] Adicionar visualizacao do valor de mercado na tabela de resultados

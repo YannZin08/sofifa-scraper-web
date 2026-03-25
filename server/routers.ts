@@ -17,12 +17,32 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  scraper: router({
+    extractPlayers: publicProcedure
+      .input((val: unknown) => {
+        if (typeof val === 'object' && val !== null && 'url' in val && typeof (val as any).url === 'string') {
+          return { url: (val as any).url };
+        }
+        throw new Error('Invalid input: url is required');
+      })
+      .mutation(async ({ input }) => {
+        try {
+          const response = await fetch('/api/scraper/extract', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: input.url }),
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
+          return await response.json();
+        } catch (error) {
+          throw new Error(`Failed to extract players: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

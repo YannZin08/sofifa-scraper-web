@@ -39,3 +39,4 @@
 - [x] Reverter posicoes para abreviacoes (ATA, ME, MEI) em vez de traducao completa
 - [x] Traduzir posicoes para portugues abreviado (MVC, VOL, MEI, etc)
 - [x] Atualizar mapeamento de posicoes com as posicoes exatas do site (GOL, ZAG, LD, LE, ADD, ADE, VOL, MC, MEI, MD, ME, PD, PE, ATA, SA)
+- [x] Adicionar extracao de URL da imagem do jogador ao JSON

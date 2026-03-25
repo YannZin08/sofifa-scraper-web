@@ -48,6 +48,7 @@ interface Player {
   potencial: number | string;
   time: string;
   posicoes: string[];
+  imagem?: string;
 }
 
 interface ScraperResult {
@@ -218,13 +219,18 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
         const teamTag = teamCell.find('a').first();
         const team = teamTag.length > 0 ? teamTag.text().trim() : 'Free Agent';
 
+        // Imagem
+        const imageTag = nameCell.find('img').first();
+        const imageUrl = imageTag.length > 0 ? imageTag.attr('src') : undefined;
+
         const player: Player = {
           nome: name,
           idade: age,
           overall,
           potencial: potential,
           time: team,
-          posicoes: positions
+          posicoes: positions,
+          imagem: imageUrl
         };
 
         players.push(player);

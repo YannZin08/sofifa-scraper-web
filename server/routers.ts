@@ -2,6 +2,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { spawn } from "child_process";
+import path from "path";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -26,21 +28,41 @@ export const appRouter = router({
         throw new Error('Invalid input: url is required');
       })
       .mutation(async ({ input }) => {
-        try {
-          const response = await fetch('/api/scraper/extract', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: input.url }),
+        return new Promise((resolve, reject) => {
+          const pythonProcess = spawn('python3', [
+            path.join(process.cwd(), 'server', 'scraper.py'),
+            input.url
+          ]);
+
+          let output = '';
+          let errorOutput = '';
+
+          pythonProcess.stdout.on('data', (data) => {
+            output += data.toString();
           });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          
-          return await response.json();
-        } catch (error) {
-          throw new Error(`Failed to extract players: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
+
+          pythonProcess.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+          });
+
+          pythonProcess.on('close', (code) => {
+            if (code !== 0) {
+              reject(new Error(`Scraper error: ${errorOutput}`));
+              return;
+            }
+
+            try {
+              const result = JSON.parse(output);
+              resolve(result);
+            } catch (parseError) {
+              reject(new Error(`Failed to parse scraper output: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`));
+            }
+          });
+
+          pythonProcess.on('error', (err) => {
+            reject(new Error(`Failed to start scraper: ${err.message}`));
+          });
+        });
       }),
   }),
 });

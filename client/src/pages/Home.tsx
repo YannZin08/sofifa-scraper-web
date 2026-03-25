@@ -15,6 +15,13 @@ interface Player {
   posicoes: string[];
 }
 
+interface ScraperResult {
+  success: boolean;
+  error: string | null;
+  players: Player[];
+  count?: number;
+}
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
@@ -40,7 +47,7 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const result = await extractMutation.mutateAsync({ url });
+      const result = (await extractMutation.mutateAsync({ url })) as ScraperResult;
 
       if (!result.success) {
         setError(result.error || "Erro desconhecido ao extrair dados");

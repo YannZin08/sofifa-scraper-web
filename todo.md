@@ -26,3 +26,7 @@
 ## Deploy
 - [ ] Criar checkpoint final
 - [ ] Entregar aplicação ao usuário
+
+
+## Bugs Encontrados
+- [x] Corrigir erro "Failed to parse URL from /api/scraper/extract" - refatorar tRPC procedure para chamar Python diretamente

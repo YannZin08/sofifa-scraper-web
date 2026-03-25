@@ -36,3 +36,4 @@
 - [x] Contornar proteção anti-bot do SoFIFA - implementar Puppeteer com navegador headless
 - [x] Instalar Chrome para Puppeteer
 - [x] Traduzir posicoes dos jogadores do ingles para portugues brasileiro
+- [x] Reverter posicoes para abreviacoes (ATA, ME, MEI) em vez de traducao completa

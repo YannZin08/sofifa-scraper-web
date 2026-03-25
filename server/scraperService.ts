@@ -222,18 +222,17 @@ function extractPlayers(html: string): Player[] {
         const potencial = $row.find('td:nth-child(5)')?.text()?.trim() || '';
         const time = $row.find('td:nth-child(6) a')?.text()?.trim() || '';
         
-        const posicoesText = $row.find('td:nth-child(7)')?.text()?.trim() || '';
+        const posicoesText = $row.find('td').eq(6).text().trim() || '';
         const posicoes = posicoesText
-          .split(',')
-          .map(p => p.trim())
-          .filter(p => p)
+          .split(/\s+/)
+          .filter(p => p && p.length > 0 && p.length < 5)
           .map(p => translatePosition(p));
 
         const imagem = $row.find('td:nth-child(2) img')?.attr('data-src') || 
                        $row.find('td:nth-child(2) img')?.attr('src') || 
                        undefined;
 
-        const valorMercado = $row.find('td:nth-child(8)')?.text()?.trim() || undefined;
+        const valorMercado = $row.find('td').eq(7)?.text()?.trim() || undefined;
 
         if (nome && overall) {
           players.push({

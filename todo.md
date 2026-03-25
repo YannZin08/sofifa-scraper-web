@@ -47,3 +47,5 @@
 - [x] Refatorar scraper para nao depender de Puppeteer/navegador headless
 - [x] Otimizar axios com headers realistas e retry logic para performance
 - [x] Integrar ScraperAPI para contornar bloqueios automaticamente
+- [x] Corrigir extracao de posicoes - seletores CSS incorretos
+- [x] Corrigir extracao de valores de mercado - seletores CSS incorretos

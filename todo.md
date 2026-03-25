@@ -37,3 +37,4 @@
 - [x] Instalar Chrome para Puppeteer
 - [x] Traduzir posicoes dos jogadores do ingles para portugues brasileiro
 - [x] Reverter posicoes para abreviacoes (ATA, ME, MEI) em vez de traducao completa
+- [x] Traduzir posicoes para portugues abreviado (MVC, VOL, MEI, etc)

@@ -81,22 +81,68 @@ async function randomDelay(min: number = 500, max: number = 2000): Promise<void>
   await new Promise(resolve => setTimeout(resolve, delay));
 }
 
-async function fetchPageWithRetry(url: string, maxRetries: number = 8): Promise<string> {
+async function fetchPageWithScraperAPI(url: string): Promise<string> {
+  const apiKey = process.env.SCRAPER_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('SCRAPER_API_KEY não configurada. Usando fallback sem proxy.');
+  }
+
+  try {
+    console.log('Usando ScraperAPI para contornar bloqueios...');
+    
+    const scraperApiUrl = 'https://api.scraperapi.com';
+    const params = {
+      api_key: apiKey,
+      url: url,
+      render: 'false', // Não precisa renderizar JavaScript
+    };
+
+    const response = await axios.get(scraperApiUrl, {
+      params,
+      timeout: 60000,
+      validateStatus: (status) => status < 500,
+    });
+
+    if (response.status === 403) {
+      throw new Error('ScraperAPI também foi bloqueado. Tente novamente em alguns minutos.');
+    }
+
+    if (response.status !== 200) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return response.data;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Erro ao usar ScraperAPI:', errorMessage);
+    throw error;
+  }
+}
+
+async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<string> {
   let lastError: Error | null = null;
 
+  // Tentar com ScraperAPI primeiro
+  try {
+    return await fetchPageWithScraperAPI(url);
+  } catch (error) {
+    lastError = error instanceof Error ? error : new Error(String(error));
+    console.log('ScraperAPI falhou, tentando sem proxy...');
+  }
+
+  // Fallback: tentar sem proxy com retry
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      // Delay progressivo com variação aleatória
       if (attempt > 0) {
         const baseDelay = Math.min(2000 * Math.pow(1.5, attempt - 1), 15000);
-        const randomVariation = Math.random() * 2000 - 1000; // -1000 a +1000ms
+        const randomVariation = Math.random() * 2000 - 1000;
         const totalDelay = Math.max(1000, baseDelay + randomVariation);
         
         console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${Math.round(totalDelay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, totalDelay));
       }
 
-      // Headers realistas que simulam navegador real
       const headers = {
         'User-Agent': getRandomUserAgent(),
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -125,9 +171,8 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 8): Promise<
       });
 
       if (response.status === 403) {
-        lastError = new Error('O SoFIFA está bloqueando requisições. Tente novamente em alguns segundos ou use um VPN.');
+        lastError = new Error('O SoFIFA está bloqueando requisições. Use ScraperAPI ou VPN.');
         
-        // Delay maior antes de retry em caso de 403
         if (attempt < maxRetries - 1) {
           await randomDelay(3000, 5000);
         }
@@ -137,7 +182,6 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 8): Promise<
       if (response.status === 429) {
         lastError = new Error('Muitas requisições. Aguardando antes de tentar novamente...');
         
-        // Delay muito maior para rate limiting
         if (attempt < maxRetries - 1) {
           await randomDelay(5000, 10000);
         }
@@ -168,19 +212,16 @@ function extractPlayers(html: string): Player[] {
   const players: Player[] = [];
 
   try {
-    // Encontrar todas as linhas da tabela
     $('tbody tr').each((_, row) => {
       try {
         const $row = $(row);
         
-        // Extrair dados básicos
         const nome = $row.find('td:nth-child(2) a')?.text()?.trim() || '';
         const idade = $row.find('td:nth-child(3)')?.text()?.trim() || '';
         const overall = $row.find('td:nth-child(4)')?.text()?.trim() || '';
         const potencial = $row.find('td:nth-child(5)')?.text()?.trim() || '';
         const time = $row.find('td:nth-child(6) a')?.text()?.trim() || '';
         
-        // Extrair posições
         const posicoesText = $row.find('td:nth-child(7)')?.text()?.trim() || '';
         const posicoes = posicoesText
           .split(',')
@@ -188,15 +229,12 @@ function extractPlayers(html: string): Player[] {
           .filter(p => p)
           .map(p => translatePosition(p));
 
-        // Extrair imagem
         const imagem = $row.find('td:nth-child(2) img')?.attr('data-src') || 
                        $row.find('td:nth-child(2) img')?.attr('src') || 
                        undefined;
 
-        // Extrair valor de mercado
         const valorMercado = $row.find('td:nth-child(8)')?.text()?.trim() || undefined;
 
-        // Validar dados obrigatórios
         if (nome && overall) {
           players.push({
             nome,
@@ -222,7 +260,6 @@ function extractPlayers(html: string): Player[] {
 
 export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
   try {
-    // Validar URL
     if (!url || !url.includes('sofifa.com')) {
       return {
         success: false,
@@ -233,10 +270,8 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
 
     console.log(`Iniciando scraping de: ${url}`);
 
-    // Buscar a página com retry
     const html = await fetchPageWithRetry(url);
 
-    // Extrair jogadores
     const players = extractPlayers(html);
 
     if (players.length === 0) {

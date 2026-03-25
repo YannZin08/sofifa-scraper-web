@@ -1,4 +1,4 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import axios, { AxiosError } from 'axios';
 import { load } from 'cheerio';
 
 // Mapeamento de posicoes do ingles para portugues abreviado conforme padroes do site
@@ -59,204 +59,153 @@ interface ScraperResult {
   count?: number;
 }
 
-let browser: Browser | null = null;
+// Lista de User-Agents para rotacionar
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+];
 
-async function getBrowser(): Promise<Browser> {
-  if (browser) {
-    return browser;
-  }
-
-  try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--no-default-browser-check',
-        '--disable-extensions',
-      ],
-    });
-    return browser;
-  } catch (error) {
-    throw new Error(`Falha ao iniciar navegador: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-  }
+function getRandomUserAgent(): string {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
-async function scrapePage(url: string): Promise<string> {
-  let page: Page | null = null;
+async function fetchPageWithRetry(url: string, maxRetries: number = 5): Promise<string> {
+  let lastError: Error | null = null;
 
-  try {
-    const browserInstance = await getBrowser();
-    page = await browserInstance.newPage();
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const delay = Math.min(1000 * Math.pow(2, attempt), 10000); // Exponential backoff
+      if (attempt > 0) {
+        console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
 
-    // Configurar User-Agent
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': getRandomUserAgent(),
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'DNT': '1',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Cache-Control': 'max-age=0',
+          'Referer': 'https://sofifa.com/',
+        },
+        timeout: 30000,
+        validateStatus: (status) => status < 500, // Não lançar erro para 4xx
+      });
 
-    // Configurar headers
-    await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'DNT': '1',
-      'Connection': 'keep-alive',
-      'Upgrade-Insecure-Requests': '1',
-    });
+      if (response.status === 403) {
+        lastError = new Error('O SoFIFA está bloqueando requisições. Tente novamente em alguns segundos ou use um VPN.');
+        continue;
+      }
 
-    // Definir timeout
-    page.setDefaultNavigationTimeout(30000);
-    page.setDefaultTimeout(30000);
+      if (response.status !== 200) {
+        lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+        continue;
+      }
 
-    // Navegar para a URL
-    await page.goto(url, {
-      waitUntil: 'networkidle2',
-      timeout: 30000,
-    });
-
-    // Aguardar a tabela carregar
-    await page.waitForSelector('tbody', { timeout: 10000 }).catch(() => {
-      // Se a tabela não carregar, continua mesmo assim
-    });
-
-    // Simular scroll para carregar conteúdo dinâmico
-    await page.evaluate(() => {
-      window.scrollBy(0, window.innerHeight);
-    });
-
-    // Aguardar um pouco para certeza
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Obter o HTML da página
-    const html = await page.content();
-    return html;
-  } catch (error) {
-    throw new Error(`Erro ao acessar página: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-  } finally {
-    if (page) {
-      try {
-        await page.close();
-      } catch (err) {
-        console.error('Erro ao fechar página:', err);
+      return response.data;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      if (attempt === maxRetries - 1) {
+        break;
       }
     }
   }
+
+  throw lastError || new Error('Falha ao acessar a URL após múltiplas tentativas');
+}
+
+function extractPlayers(html: string): Player[] {
+  const $ = load(html);
+  const players: Player[] = [];
+
+  try {
+    // Encontrar todas as linhas da tabela
+    $('tbody tr').each((_, row) => {
+      try {
+        const $row = $(row);
+        
+        // Extrair dados básicos
+        const nome = $row.find('td:nth-child(2) a')?.text()?.trim() || '';
+        const idade = $row.find('td:nth-child(3)')?.text()?.trim() || '';
+        const overall = $row.find('td:nth-child(4)')?.text()?.trim() || '';
+        const potencial = $row.find('td:nth-child(5)')?.text()?.trim() || '';
+        const time = $row.find('td:nth-child(6) a')?.text()?.trim() || '';
+        
+        // Extrair posições
+        const posicoesText = $row.find('td:nth-child(7)')?.text()?.trim() || '';
+        const posicoes = posicoesText
+          .split(',')
+          .map(p => p.trim())
+          .filter(p => p)
+          .map(p => translatePosition(p));
+
+        // Extrair imagem
+        const imagem = $row.find('td:nth-child(2) img')?.attr('data-src') || 
+                       $row.find('td:nth-child(2) img')?.attr('src') || 
+                       undefined;
+
+        // Extrair valor de mercado
+        const valorMercado = $row.find('td:nth-child(8)')?.text()?.trim() || undefined;
+
+        // Validar dados obrigatórios
+        if (nome && overall) {
+          players.push({
+            nome,
+            idade: isNaN(Number(idade)) ? idade : Number(idade),
+            overall: isNaN(Number(overall)) ? overall : Number(overall),
+            potencial: isNaN(Number(potencial)) ? potencial : Number(potencial),
+            time,
+            posicoes,
+            imagem,
+            valorMercado,
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao processar linha da tabela:', err);
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao extrair jogadores:', err);
+  }
+
+  return players;
 }
 
 export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
   try {
     // Validar URL
-    if (!url.includes('sofifa.com')) {
+    if (!url || !url.includes('sofifa.com')) {
       return {
         success: false,
-        error: 'A URL deve ser do site sofifa.com',
-        players: []
+        error: 'URL inválida. Certifique-se de que é uma URL do SoFIFA.',
+        players: [],
       };
     }
 
-    let html: string;
-    try {
-      html = await scrapePage(url);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-      return {
-        success: false,
-        error: `Erro ao acessar a URL: ${errorMsg}`,
-        players: []
-      };
-    }
+    console.log(`Iniciando scraping de: ${url}`);
 
-    const $ = load(html);
-    const tbody = $('tbody');
+    // Buscar a página com retry
+    const html = await fetchPageWithRetry(url);
 
-    if (tbody.length === 0) {
-      return {
-        success: false,
-        error: 'Tabela não encontrada. Verifique se a URL do SoFIFA está correta.',
-        players: []
-      };
-    }
-
-    const players: Player[] = [];
-    const rows = $('tbody tr');
-
-    rows.each((_, row) => {
-      try {
-        const cells = $(row).find('td');
-        if (cells.length < 6) return;
-
-        // Nome
-        const nameCell = $(cells[1]);
-        const nameTag = nameCell.find('a').first();
-        if (nameTag.length === 0) return;
-        const name = nameTag.text().trim();
-
-        // Posicoes
-        const positions: string[] = [];
-        nameCell.find('a[rel="nofollow"]').each((_, link) => {
-          const text = $(link).text().trim();
-          if (text.length > 0 && text.length <= 3 && /^[A-Z]+$/.test(text)) {
-            const translatedPosition = translatePosition(text);
-            positions.push(translatedPosition);
-          }
-        });
-
-        // Idade
-        const ageText = $(cells[2]).text().trim();
-        const age = /^\d+$/.test(ageText) ? parseInt(ageText) : ageText;
-
-        // Overall
-        const overallText = $(cells[3]).text().trim();
-        const overall = /^\d+$/.test(overallText) ? parseInt(overallText) : overallText;
-
-        // Potencial
-        const potentialText = $(cells[4]).text().trim();
-        const potential = /^\d+$/.test(potentialText) ? parseInt(potentialText) : potentialText;
-
-        // Time
-        const teamCell = $(cells[5]);
-        const teamTag = teamCell.find('a').first();
-        const team = teamTag.length > 0 ? teamTag.text().trim() : 'Free Agent';
-
-        // Imagem
-        const imageTag = nameCell.find('img').first();
-        const imageUrl = imageTag.length > 0 ? imageTag.attr('src') : undefined;
-
-        // Valor de Mercado
-        let marketValue: string | undefined = undefined;
-        if (cells.length > 6) {
-          const marketCell = $(cells[6]);
-          const marketText = marketCell.text().trim();
-          if (marketText) {
-            marketValue = marketText;
-          }
-        }
-
-        const player: Player = {
-          nome: name,
-          idade: age,
-          overall,
-          potencial: potential,
-          time: team,
-          posicoes: positions,
-          imagem: imageUrl,
-          valorMercado: marketValue
-        };
-
-        players.push(player);
-      } catch (err) {
-        // Continua mesmo se uma linha falhar
-        console.error('Erro ao processar linha:', err);
-      }
-    });
+    // Extrair jogadores
+    const players = extractPlayers(html);
 
     if (players.length === 0) {
       return {
         success: false,
-        error: 'Nenhum jogador encontrado na página. A página pode estar vazia ou o formato pode ter mudado.',
-        players: []
+        error: 'Nenhum jogador encontrado. A página pode estar vazia ou a estrutura do SoFIFA pode ter mudado.',
+        players: [],
       };
     }
 
@@ -264,25 +213,16 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
       success: true,
       error: null,
       players,
-      count: players.length
+      count: players.length,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro no scraper:', errorMessage);
+
     return {
       success: false,
-      error: `Erro durante a extração: ${errorMessage}`,
-      players: []
+      error: `Erro ao acessar página: ${errorMessage}`,
+      players: [],
     };
   }
 }
-
-// Limpar recursos ao desligar
-process.on('exit', async () => {
-  if (browser) {
-    try {
-      await browser.close();
-    } catch (err) {
-      console.error('Erro ao fechar navegador:', err);
-    }
-  }
-});

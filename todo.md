@@ -35,3 +35,4 @@
 - [x] Corrigir erro 403 - adicionar suporte a proxy e melhorar headers
 - [x] Contornar proteção anti-bot do SoFIFA - implementar Puppeteer com navegador headless
 - [x] Instalar Chrome para Puppeteer
+- [x] Traduzir posicoes dos jogadores do ingles para portugues brasileiro

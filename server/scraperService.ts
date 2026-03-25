@@ -1,6 +1,44 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { load } from 'cheerio';
 
+// Mapeamento de posicoes do ingles para portugues brasileiro
+const POSITION_TRANSLATIONS: Record<string, string> = {
+  'GK': 'Goleiro',
+  'CB': 'Zagueiro',
+  'LB': 'Lateral Esquerdo',
+  'RB': 'Lateral Direito',
+  'LWB': 'Ala Esquerdo',
+  'RWB': 'Ala Direito',
+  'CM': 'Meia',
+  'CDM': 'Meia Defensivo',
+  'CAM': 'Meia Atacante',
+  'LM': 'Meia Esquerdo',
+  'RM': 'Meia Direito',
+  'LCM': 'Meia Central Esquerdo',
+  'RCM': 'Meia Central Direito',
+  'LDM': 'Meia Defensivo Esquerdo',
+  'RDM': 'Meia Defensivo Direito',
+  'LAM': 'Meia Atacante Esquerdo',
+  'RAM': 'Meia Atacante Direito',
+  'MEI': 'Meia Interna',
+  'ME': 'Meia Esquerda',
+  'MD': 'Meia Direita',
+  'ST': 'Atacante',
+  'CF': 'Centroavante',
+  'LW': 'Extremo Esquerdo',
+  'RW': 'Extremo Direito',
+  'LF': 'Ala Esquerda',
+  'RF': 'Ala Direita',
+  'ATA': 'Atacante',
+  'AT': 'Atacante',
+  'EE': 'Extremo Esquerdo',
+  'ED': 'Extremo Direito',
+};
+
+function translatePosition(position: string): string {
+  return POSITION_TRANSLATIONS[position] || position;
+}
+
 interface Player {
   nome: string;
   idade: number | string;
@@ -151,12 +189,13 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
         if (nameTag.length === 0) return;
         const name = nameTag.text().trim();
 
-        // Posições
+        // Posicoes
         const positions: string[] = [];
         nameCell.find('a[rel="nofollow"]').each((_, link) => {
           const text = $(link).text().trim();
           if (text.length > 0 && text.length <= 3 && /^[A-Z]+$/.test(text)) {
-            positions.push(text);
+            const translatedPosition = translatePosition(text);
+            positions.push(translatedPosition);
           }
         });
 

@@ -55,8 +55,11 @@ async function fetchPageWithPuppeteer(url: string): Promise<string> {
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     
+    // Aumentar o tempo limite e esperar a rede ficar ociosa
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    await page.waitForSelector('tbody tr', { timeout: 10000 }).catch(() => {});
+    
+    // Aguardar explicitamente a tabela carregar
+    await page.waitForSelector('tbody tr', { timeout: 15000 }).catch(() => {});
     
     const content = await page.content();
     return content;
@@ -72,13 +75,18 @@ function extractPlayers(html: string): Player[] {
   $('tbody tr').each((_, row) => {
     try {
       const $row = $(row);
-      const nameCell = $row.find('td').eq(1);
+      const cells = $row.find('td');
       
-      // O nome está no link que contém "/player/"
-      // IMPORTANTE: Pegamos apenas o texto do link, não da célula toda para não vir as posições grudadas
+      // Coluna 1 (Índice 0): Imagem do Jogador
+      const imagem = cells.eq(0).find('img').attr('data-src') || 
+                     cells.eq(0).find('img').attr('src');
+
+      // Coluna 2 (Índice 1): Nome e Posições
+      const nameCell = cells.eq(1);
+      // Pega apenas o texto do link que contém "/player/", ignorando spans das posições
       const nome = nameCell.find('a[href*="/player/"]').first().text().trim();
       
-      // Posições: O SoFIFA coloca as posições dentro de spans com classe .pos
+      // Posições estão em spans com classe .pos dentro da mesma célula do nome
       const posicoes: string[] = [];
       nameCell.find('span.pos').each((_, span) => {
         const posText = $(span).text().trim();
@@ -87,19 +95,21 @@ function extractPlayers(html: string): Player[] {
         }
       });
 
-      const idade = $row.find('td').eq(2).text().trim();
-      const overall = $row.find('td').eq(3).text().trim();
-      const potencial = $row.find('td').eq(4).text().trim();
-      
-      // Time (Célula 5)
-      const time = $row.find('td').eq(5).find('a[href*="/team/"]').first().text().trim();
-      
-      // Valor de Mercado (Célula 6)
-      const valorMercado = $row.find('td').eq(6).text().trim();
+      // Coluna 3 (Índice 2): Idade
+      const idade = cells.eq(2).text().trim();
 
-      // Imagem do jogador (Avatar) - Fica na primeira célula (índice 0)
-      const imagem = $row.find('td').eq(0).find('img').attr('data-src') || 
-                     $row.find('td').eq(0).find('img').attr('src');
+      // Coluna 4 (Índice 3): Overall
+      const overall = cells.eq(3).text().trim();
+
+      // Coluna 5 (Índice 4): Potencial
+      const potencial = cells.eq(4).text().trim();
+      
+      // Coluna 6 (Índice 5): Time
+      const time = cells.eq(5).find('a[href*="/team/"]').first().text().trim();
+      
+      // Coluna 7 (Índice 6): Valor de Mercado (Preço)
+      // O SoFIFA coloca o preço na coluna 7 (índice 6) na visualização padrão
+      const valorMercado = cells.eq(6).text().trim();
 
       if (nome && overall) {
         players.push({
@@ -127,16 +137,18 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
       return { success: false, error: 'URL inválida.', players: [] };
     }
 
+    console.log(`Iniciando extração via Puppeteer para: ${url}`);
     const html = await fetchPageWithPuppeteer(url);
     const players = extractPlayers(html);
 
     if (players.length === 0) {
-      return { success: false, error: 'Nenhum jogador encontrado.', players: [] };
+      return { success: false, error: 'Nenhum jogador encontrado. Verifique se a URL está correta.', players: [] };
     }
 
     return { success: true, error: null, players, count: players.length };
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro no scraper:', msg);
     return { success: false, error: `Erro ao acessar página: ${msg}`, players: [] };
   }
 }

@@ -29,7 +29,7 @@ export const appRouter = router({
       })
       .mutation(async ({ input }) => {
         return new Promise((resolve, reject) => {
-          const pythonProcess = spawn('python3', [
+          const pythonProcess = spawn('python3.11', [
             path.join(process.cwd(), 'server', 'scraper.py'),
             input.url
           ]);

@@ -1,45 +1,40 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { load } from 'cheerio';
 
-// Mapeamento de posicoes do ingles para portugues abreviado
+// Mapeamento de posicoes do ingles para portugues abreviado conforme padroes do site
 const POSITION_TRANSLATIONS: Record<string, string> = {
-  // Goleiro
   'GK': 'GOL',
-  
-  // Defensores
   'CB': 'ZAG',
-  'LB': 'LAE',
-  'RB': 'LAD',
-  'LWB': 'ALE',
-  'RWB': 'ALD',
-  
-  // Meias
-  'CM': 'MVC',
+  'LB': 'LE',
+  'RB': 'LD',
+  'LWB': 'ADE',
+  'RWB': 'ADD',
+  'CM': 'MC',
   'CDM': 'VOL',
-  'CAM': 'MEA',
-  'LM': 'MEE',
-  'RM': 'MED',
-  'LCM': 'MCE',
-  'RCM': 'MCD',
-  'LDM': 'VLE',
-  'RDM': 'VLD',
-  'LAM': 'MAE',
-  'RAM': 'MAD',
+  'CAM': 'PE',
+  'LM': 'ME',
+  'RM': 'MD',
+  'LCM': 'MC',
+  'RCM': 'MC',
+  'LDM': 'VOL',
+  'RDM': 'VOL',
+  'LAM': 'PE',
+  'RAM': 'PE',
   'MEI': 'MEI',
-  'ME': 'MEE',
-  'MD': 'MED',
-  
-  // Atacantes
+  'ME': 'ME',
+  'MD': 'MD',
   'ST': 'ATA',
-  'CF': 'CEN',
-  'LW': 'EXE',
-  'RW': 'EXD',
-  'LF': 'ALE',
-  'RF': 'ALD',
+  'CF': 'ATA',
+  'LW': 'PE',
+  'RW': 'PE',
+  'LF': 'SA',
+  'RF': 'SA',
   'ATA': 'ATA',
   'AT': 'ATA',
-  'EE': 'EXE',
-  'ED': 'EXD',
+  'EE': 'PE',
+  'ED': 'PE',
+  'SA': 'SA',
+  'PD': 'PD',
 };
 
 function translatePosition(position: string): string {

@@ -26,7 +26,7 @@ const POSITION_TRANSLATIONS: Record<string, string> = {
   'ST': 'ATA',
   'CF': 'ATA',
   'LW': 'PE',
-  'RW': 'PE',
+  'RW': 'MD',
   'LF': 'SA',
   'RF': 'SA',
   'ATA': 'ATA',
@@ -34,7 +34,7 @@ const POSITION_TRANSLATIONS: Record<string, string> = {
   'EE': 'PE',
   'ED': 'PE',
   'SA': 'SA',
-  'PD': 'PD',
+  'PD': 'PE',
 };
 
 function translatePosition(position: string): string {
@@ -215,24 +215,41 @@ function extractPlayers(html: string): Player[] {
     $('tbody tr').each((_, row) => {
       try {
         const $row = $(row);
+        const $cells = $row.find('td');
         
-        const nome = $row.find('td:nth-child(2) a')?.text()?.trim() || '';
-        const idade = $row.find('td:nth-child(3)')?.text()?.trim() || '';
-        const overall = $row.find('td:nth-child(4)')?.text()?.trim() || '';
-        const potencial = $row.find('td:nth-child(5)')?.text()?.trim() || '';
-        const time = $row.find('td:nth-child(6) a')?.text()?.trim() || '';
+        // TD[1] - Nome (via link) e Posições (via spans)
+        const $td1 = $cells.eq(1);
+        const nome = $td1.find('a[href*="/player/"]').first().text().trim() || '';
         
-        const posicoesText = $row.find('td').eq(6).text().trim() || '';
-        const posicoes = posicoesText
-          .split(/\s+/)
-          .filter(p => p && p.length > 0 && p.length < 5)
-          .map(p => translatePosition(p));
+        // Extrair posições dos spans dentro de TD[1]
+        const posicoes: string[] = [];
+        $td1.find('span').each((_, span) => {
+          const posText = $(span).text().trim();
+          // Filtrar apenas posições válidas (2-4 caracteres)
+          if (posText && posText.length >= 2 && posText.length <= 4 && /^[A-Z]+$/.test(posText)) {
+            posicoes.push(translatePosition(posText));
+          }
+        });
+        
+        // TD[2] - Idade
+        const idade = $cells.eq(2).text().trim() || '';
+        
+        // TD[3] - Overall
+        const overall = $cells.eq(3).text().trim() || '';
+        
+        // TD[4] - Potencial
+        const potencial = $cells.eq(4).text().trim() || '';
+        
+        // TD[5] - Time (primeiro link)
+        const time = $cells.eq(5).find('a').first().text().trim() || '';
+        
+        // TD[16] - Valor de Mercado (com unidade M/K)
+        const valorMercado = $cells.eq(16).text().trim() || undefined;
 
-        const imagem = $row.find('td:nth-child(2) img')?.attr('data-src') || 
-                       $row.find('td:nth-child(2) img')?.attr('src') || 
+        // Imagem do jogador (em TD[1])
+        const imagem = $td1.find('img')?.attr('data-src') || 
+                       $td1.find('img')?.attr('src') || 
                        undefined;
-
-        const valorMercado = $row.find('td').eq(7)?.text()?.trim() || undefined;
 
         if (nome && overall) {
           players.push({

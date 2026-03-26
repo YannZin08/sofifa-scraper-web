@@ -462,9 +462,10 @@ function extractPlayers(html: string): Player[] {
         const paisIngles = flagImg.attr('title') || '';
         const pais = paisIngles ? translateCountry(paisIngles) : undefined;
 
-        // Imagem do jogador (em TD[1])
-        const imagem = $td1.find('img:not(.flag)')?.attr('data-src') || 
-                       $td1.find('img:not(.flag)')?.attr('src') || 
+        // Imagem do jogador (em TD[0] com classe player-check)
+        const playerImg = $cells.eq(0).find('img.player-check');
+        const imagem = playerImg.attr('data-src') || 
+                       playerImg.attr('src') || 
                        undefined;
 
         if (nome && overall) {

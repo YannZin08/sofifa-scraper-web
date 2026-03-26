@@ -13,6 +13,7 @@ interface Player {
   potencial: number | string;
   time: string;
   posicoes: string[];
+  pais?: string;
   imagem?: string;
   valorMercado?: string;
 }
@@ -283,6 +284,7 @@ export default function Home() {
                       <th className="text-center py-3 px-4 font-semibold text-slate-700">Overall</th>
                       <th className="text-center py-3 px-4 font-semibold text-slate-700">Potencial</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Time</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">País</th>
                       <th className="text-center py-3 px-4 font-semibold text-slate-700">Valor Mercado</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Posições</th>
                     </tr>
@@ -303,6 +305,15 @@ export default function Home() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-slate-700">{player.time}</td>
+                        <td className="py-3 px-4 text-slate-700">
+                          {player.pais ? (
+                            <span className="inline-block bg-amber-100 text-amber-800 px-2 py-1 rounded font-medium text-xs">
+                              {player.pais}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
                         <td className="py-3 px-4 text-center">
                           {player.valorMercado ? (
                             <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">

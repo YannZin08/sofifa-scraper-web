@@ -298,3 +298,99 @@ export async function scrapeSofifaPlayers(url: string): Promise<ScraperResult> {
     };
   }
 }
+
+export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: number, endOffset: number, step: number = 60): Promise<ScraperResult> {
+  try {
+    if (!baseUrl || !baseUrl.includes('sofifa.com')) {
+      return {
+        success: false,
+        error: 'URL inválida. Certifique-se de que é uma URL do SoFIFA.',
+        players: [],
+      };
+    }
+
+    // Validar intervalo
+    if (startOffset < 0 || endOffset < startOffset) {
+      return {
+        success: false,
+        error: 'Intervalo inválido. O offset final deve ser maior ou igual ao inicial.',
+        players: [],
+      };
+    }
+
+    if (endOffset - startOffset > 600) {
+      return {
+        success: false,
+        error: 'Intervalo muito grande. Máximo de 600 offsets por vez (10 páginas).',
+        players: [],
+      };
+    }
+
+    const allPlayers: Player[] = [];
+    const offsets = [];
+
+    // Gerar lista de offsets
+    for (let offset = startOffset; offset <= endOffset; offset += step) {
+      offsets.push(offset);
+    }
+
+    console.log(`Iniciando scraping em lote: ${offsets.length} páginas, offsets: ${startOffset} a ${endOffset}`);
+
+    // Extrair cada página
+    for (let i = 0; i < offsets.length; i++) {
+      const offset = offsets[i];
+      
+      try {
+        // Construir URL com novo offset
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        const urlWithoutOffset = baseUrl.replace(/[?&]offset=\d+/, '');
+        const pageUrl = `${urlWithoutOffset}${separator}offset=${offset}`;
+
+        console.log(`[${i + 1}/${offsets.length}] Extraindo página com offset ${offset}...`);
+
+        const html = await fetchPageWithRetry(pageUrl);
+        const players = extractPlayers(html);
+
+        if (players.length > 0) {
+          allPlayers.push(...players);
+          console.log(`  ✓ ${players.length} jogadores encontrados`);
+        } else {
+          console.log(`  ⚠ Nenhum jogador encontrado nesta página`);
+        }
+
+        // Delay entre requisições para não sobrecarregar
+        if (i < offsets.length - 1) {
+          await randomDelay(1000, 3000);
+        }
+      } catch (pageError) {
+        const errorMessage = pageError instanceof Error ? pageError.message : 'Erro desconhecido';
+        console.error(`Erro ao extrair página com offset ${offset}:`, errorMessage);
+        // Continuar com próxima página em caso de erro
+      }
+    }
+
+    if (allPlayers.length === 0) {
+      return {
+        success: false,
+        error: 'Nenhum jogador encontrado em nenhuma das páginas. Verifique o intervalo de offsets.',
+        players: [],
+      };
+    }
+
+    return {
+      success: true,
+      error: null,
+      players: allPlayers,
+      count: allPlayers.length,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro no scraper em lote:', errorMessage);
+
+    return {
+      success: false,
+      error: `Erro ao extrair em lote: ${errorMessage}`,
+      players: [],
+    };
+  }
+}

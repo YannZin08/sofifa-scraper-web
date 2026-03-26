@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Download, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Download, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
 
 interface Player {
@@ -29,8 +29,12 @@ export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [startOffset, setStartOffset] = useState(0);
+  const [endOffset, setEndOffset] = useState(60);
 
   const extractMutation = trpc.scraper.extractPlayers.useMutation();
+  const extractBatchMutation = trpc.scraper.extractPlayersBatch.useMutation();
 
   const handleExtract = async () => {
     setError(null);
@@ -67,6 +71,56 @@ export default function Home() {
     }
   };
 
+  const handleExtractBatch = async () => {
+    setError(null);
+    setPlayers([]);
+
+    if (!url.trim()) {
+      setError("Por favor, cole uma URL do SoFIFA");
+      return;
+    }
+
+    if (!url.includes("sofifa.com")) {
+      setError("A URL deve ser do site sofifa.com");
+      return;
+    }
+
+    if (startOffset < 0 || endOffset < startOffset) {
+      setError("Intervalo de offsets inválido");
+      return;
+    }
+
+    if (endOffset - startOffset > 600) {
+      setError("Intervalo muito grande. Máximo de 600 offsets por vez");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = (await extractBatchMutation.mutateAsync({
+        baseUrl: url,
+        startOffset,
+        endOffset,
+        step: 60,
+      })) as ScraperResult;
+
+      if (!result.success) {
+        setError(result.error || "Erro desconhecido ao extrair dados em lote");
+        return;
+      }
+
+      setPlayers(result.players || []);
+      toast.success(`${result.count || result.players?.length || 0} jogadores extraídos com sucesso!`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados em lote";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDownloadJSON = () => {
     if (players.length === 0) {
       toast.error("Nenhum dado para baixar");
@@ -95,11 +149,33 @@ export default function Home() {
           <p className="text-slate-600">Extraia dados de jogadores do SoFIFA e gere um arquivo JSON estruturado</p>
         </div>
 
+        {/* Mode Selector */}
+        <div className="mb-6 flex gap-4 justify-center">
+          <Button
+            onClick={() => setIsBatchMode(false)}
+            variant={!isBatchMode ? "default" : "outline"}
+            className={!isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+          >
+            Extração Simples
+          </Button>
+          <Button
+            onClick={() => setIsBatchMode(true)}
+            variant={isBatchMode ? "default" : "outline"}
+            className={isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+          >
+            Extração em Lote
+          </Button>
+        </div>
+
         {/* Input Card */}
         <Card className="mb-6 shadow-lg">
           <CardHeader>
-            <CardTitle>Extrair Jogadores</CardTitle>
-            <CardDescription>Cole a URL da página do SoFIFA que deseja extrair</CardDescription>
+            <CardTitle>{isBatchMode ? "Extrair Jogadores em Lote" : "Extrair Jogadores"}</CardTitle>
+            <CardDescription>
+              {isBatchMode
+                ? "Extraia múltiplas páginas consecutivas fornecendo um intervalo de offsets"
+                : "Cole a URL da página do SoFIFA que deseja extrair"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -113,6 +189,45 @@ export default function Home() {
               />
             </div>
 
+            {isBatchMode && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Offset Inicial</label>
+                    <Input
+                      type="number"
+                      value={startOffset}
+                      onChange={(e) => setStartOffset(Math.max(0, parseInt(e.target.value) || 0))}
+                      disabled={isLoading}
+                      className="bg-white"
+                      min="0"
+                      step="60"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Offset Final</label>
+                    <Input
+                      type="number"
+                      value={endOffset}
+                      onChange={(e) => setEndOffset(Math.max(startOffset, parseInt(e.target.value) || 0))}
+                      disabled={isLoading}
+                      className="bg-white"
+                      min="0"
+                      step="60"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-blue-700">
+                    Cada página contém ~60 jogadores. Use offsets em múltiplos de 60 (0, 60, 120, 180...).
+                    Máximo de 600 offsets por vez (10 páginas).
+                  </p>
+                </div>
+              </>
+            )}
+
             {error && (
               <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -121,7 +236,7 @@ export default function Home() {
             )}
 
             <Button
-              onClick={handleExtract}
+              onClick={isBatchMode ? handleExtractBatch : handleExtract}
               disabled={isLoading || !url.trim()}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               size="lg"
@@ -129,10 +244,10 @@ export default function Home() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Extraindo...
+                  {isBatchMode ? "Extraindo em lote..." : "Extraindo..."}
                 </>
               ) : (
-                "Extrair Jogadores"
+                isBatchMode ? "Extrair em Lote" : "Extrair Jogadores"
               )}
             </Button>
           </CardContent>
@@ -223,7 +338,11 @@ export default function Home() {
           <Card className="shadow-lg border-dashed">
             <CardContent className="py-12 text-center">
               <p className="text-slate-500 mb-4">Nenhum dado extraído ainda</p>
-              <p className="text-sm text-slate-400">Cole uma URL do SoFIFA e clique em "Extrair Jogadores" para começar</p>
+              <p className="text-sm text-slate-400">
+                {isBatchMode
+                  ? "Cole uma URL do SoFIFA, defina o intervalo de offsets e clique em 'Extrair em Lote' para começar"
+                  : "Cole uma URL do SoFIFA e clique em 'Extrair Jogadores' para começar"}
+              </p>
             </CardContent>
           </Card>
         )}

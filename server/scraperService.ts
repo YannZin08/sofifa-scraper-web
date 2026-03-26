@@ -449,7 +449,13 @@ function extractPlayers(html: string): Player[] {
         const time = $cells.eq(5).find('a').first().text().trim() || '';
         
         // TD[16] - Valor de Mercado (com unidade M/K)
-        const valorMercado = $cells.eq(16).text().trim() || undefined;
+        // Se a tabela tem poucas colunas (renderização normal), tenta TD[6]
+        // Se tem muitas colunas (ScraperAPI), usa TD[16]
+        let valorMercado: string | undefined = $cells.eq(16).text().trim();
+        if (!valorMercado && $cells.length < 20) {
+          valorMercado = $cells.eq(6).text().trim();
+        }
+        valorMercado = valorMercado || undefined;
 
         // País do jogador (via flag em TD[1])
         const flagImg = $td1.find('img.flag');

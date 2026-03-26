@@ -448,8 +448,8 @@ function extractPlayers(html: string): Player[] {
         // TD[5] - Time (primeiro link)
         const time = $cells.eq(5).find('a').first().text().trim() || '';
         
-        // TD[6] - Valor de Mercado (com unidade M/K)
-        const valorMercado = $cells.eq(6).text().trim() || undefined;
+        // TD[16] - Valor de Mercado (com unidade M/K)
+        const valorMercado = $cells.eq(16).text().trim() || undefined;
 
         // País do jogador (via flag em TD[1])
         const flagImg = $td1.find('img.flag');

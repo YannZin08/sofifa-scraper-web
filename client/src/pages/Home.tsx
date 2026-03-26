@@ -279,6 +279,7 @@ export default function Home() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Imagem</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
                       <th className="text-center py-3 px-4 font-semibold text-slate-700">Idade</th>
                       <th className="text-center py-3 px-4 font-semibold text-slate-700">Overall</th>
@@ -292,6 +293,13 @@ export default function Home() {
                   <tbody>
                     {players.map((player, idx) => (
                       <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-3 px-4 text-center">
+                          {player.imagem ? (
+                            <img src={player.imagem} alt={player.nome} className="w-10 h-10 rounded object-cover" />
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
+                          )}
+                        </td>
                         <td className="py-3 px-4 text-slate-900 font-medium">{player.nome}</td>
                         <td className="py-3 px-4 text-center text-slate-700">{player.idade}</td>
                         <td className="py-3 px-4 text-center">

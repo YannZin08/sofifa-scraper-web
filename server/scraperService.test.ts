@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch } from "./scraperService";
+import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch, scrapeSofifaTeams } from "./scraperService";
 
 describe("scrapeSofifaPlayers", () => {
   it("should return error for invalid URL", async () => {
@@ -91,5 +91,40 @@ describe("scrapeSofifaPlayersBatch - Input Validation", () => {
     expect(result).toHaveProperty("success");
     expect(result).toHaveProperty("error");
     expect(result).toHaveProperty("players");
+  });
+});
+
+
+describe("scrapeSofifaTeams - Input Validation", () => {
+  it("should return error for invalid URL", async () => {
+    const result = await scrapeSofifaTeams("https://example.com");
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL deve ser do site sofifa.com");
+    expect(result.teams).toEqual([]);
+  });
+
+  it("should return error for empty URL", async () => {
+    const result = await scrapeSofifaTeams("");
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL inválida");
+    expect(result.teams).toEqual([]);
+  });
+
+  it("should return error for null URL", async () => {
+    const result = await scrapeSofifaTeams(null as any);
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL inválida");
+    expect(result.teams).toEqual([]);
+  });
+
+  it("should return error for non-sofifa URL", async () => {
+    const result = await scrapeSofifaTeams("https://google.com/teams");
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL deve ser do site sofifa.com");
+    expect(result.teams).toEqual([]);
   });
 });

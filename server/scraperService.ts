@@ -689,3 +689,387 @@ export async function downloadPlayerImages(players: Player[]): Promise<Buffer> {
     throw error;
   }
 }
+
+
+// Interface para times
+interface Team {
+  nome: string;
+  liga: string;
+  orcamento: string;
+  valorClube: string;
+  nacionalidade: string;
+  logo?: string;
+  bandeira?: string;
+}
+
+interface TeamResult {
+  success: boolean;
+  error: string | null;
+  teams: Team[];
+  count?: number;
+}
+
+// Função para extrair times
+export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
+  try {
+    if (!url || typeof url !== 'string') {
+      return {
+        success: false,
+        error: 'URL inválida',
+        teams: [],
+      };
+    }
+
+    if (!url.includes('sofifa.com')) {
+      return {
+        success: false,
+        error: 'A URL deve ser do site sofifa.com',
+        teams: [],
+      };
+    }
+
+    console.log('Extraindo times de:', url);
+
+    const scraperApiKey = process.env.SCRAPER_API_KEY;
+    if (!scraperApiKey) {
+      return {
+        success: false,
+        error: 'SCRAPER_API_KEY não configurada',
+        teams: [],
+      };
+    }
+
+    console.log('Usando ScraperAPI para contornar bloqueios...');
+    const response = await axios.get(
+      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}`
+    );
+
+    const $ = load(response.data);
+    const teams: Team[] = [];
+
+    // Extrair times da tabela
+    const rows = $('table tbody tr');
+    console.log(`Encontrados ${rows.length} times`);
+
+    rows.each((index, row) => {
+      try {
+        const $row = $(row);
+        const cells = $row.find('td');
+
+        if (cells.length < 8) return;
+
+        // TD[1]: Nome do time + Liga
+        const nomeComLiga = cells.eq(1).text().trim();
+        const [nome, liga] = nomeComLiga.split(/\s+(?=[A-Z])/);
+
+        // TD[6]: Valor do clube
+        const valorClube = cells.eq(6).text().trim() || '-';
+
+        // TD[7]: Orçamento
+        const orcamento = cells.eq(7).text().trim() || '-';
+
+        // Imagens
+        const images = $row.find('img');
+        let logo = '';
+        let bandeira = '';
+
+        images.each((i, img) => {
+          const $img = $(img);
+          const dataSrc = $img.attr('data-src') || '';
+          
+          if (i === 0 && dataSrc.includes('/team/')) {
+            logo = dataSrc;
+          } else if (i === 1 && dataSrc.includes('/flags/')) {
+            bandeira = dataSrc;
+          }
+        });
+
+        // Extrair nacionalidade da bandeira URL
+        let nacionalidade = '-';
+        if (bandeira) {
+          const countryCode = bandeira.split('/').pop()?.replace('.png', '').toUpperCase() || '';
+          nacionalidade = translateCountryCode(countryCode);
+        }
+
+        teams.push({
+          nome: nome || 'Desconhecido',
+          liga: liga || 'Desconhecida',
+          orcamento,
+          valorClube,
+          nacionalidade,
+          logo,
+          bandeira,
+        });
+      } catch (error) {
+        console.error('Erro ao processar linha:', error);
+      }
+    });
+
+    return {
+      success: true,
+      error: null,
+      teams,
+      count: teams.length,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro ao extrair times:', errorMessage);
+    return {
+      success: false,
+      error: errorMessage,
+      teams: [],
+    };
+  }
+}
+
+// Função para traduzir código de país para português
+function translateCountryCode(code: string): string {
+  const countryMap: Record<string, string> = {
+    'DE': 'Alemanha',
+    'ES': 'Espanha',
+    'FR': 'França',
+    'IT': 'Itália',
+    'PT': 'Portugal',
+    'BR': 'Brasil',
+    'AR': 'Argentina',
+    'GB': 'Inglaterra',
+    'NL': 'Holanda',
+    'BE': 'Bélgica',
+    'AT': 'Áustria',
+    'CH': 'Suíça',
+    'SE': 'Suécia',
+    'NO': 'Noruega',
+    'DK': 'Dinamarca',
+    'PL': 'Polônia',
+    'CZ': 'República Tcheca',
+    'RO': 'Romênia',
+    'GR': 'Grécia',
+    'TR': 'Turquia',
+    'RU': 'Rússia',
+    'UA': 'Ucrânia',
+    'JP': 'Japão',
+    'CN': 'China',
+    'IN': 'Índia',
+    'MX': 'México',
+    'US': 'Estados Unidos',
+    'CA': 'Canadá',
+    'AU': 'Austrália',
+    'ZA': 'África do Sul',
+    'EG': 'Egito',
+    'NG': 'Nigéria',
+    'KR': 'Coreia do Sul',
+    'TH': 'Tailândia',
+    'SG': 'Singapura',
+    'MY': 'Malásia',
+    'ID': 'Indonésia',
+    'PH': 'Filipinas',
+    'VN': 'Vietnã',
+    'CL': 'Chile',
+    'CO': 'Colômbia',
+    'PE': 'Peru',
+    'UY': 'Uruguai',
+    'PY': 'Paraguai',
+    'BO': 'Bolívia',
+    'EC': 'Equador',
+    'VE': 'Venezuela',
+    'CU': 'Cuba',
+    'JM': 'Jamaica',
+    'CR': 'Costa Rica',
+    'PA': 'Panamá',
+    'HN': 'Honduras',
+    'SV': 'El Salvador',
+    'GT': 'Guatemala',
+    'NI': 'Nicarágua',
+    'BZ': 'Belize',
+    'DO': 'República Dominicana',
+    'PR': 'Porto Rico',
+    'TT': 'Trinidad e Tobago',
+    'BB': 'Barbados',
+    'BS': 'Bahamas',
+    'BH': 'Bahrein',
+    'QA': 'Catar',
+    'AE': 'Emirados Árabes Unidos',
+    'SA': 'Arábia Saudita',
+    'KW': 'Kuwait',
+    'OM': 'Omã',
+    'YE': 'Iêmen',
+    'IL': 'Israel',
+    'JO': 'Jordânia',
+    'LB': 'Líbano',
+    'SY': 'Síria',
+    'IQ': 'Iraque',
+    'IR': 'Irã',
+    'AF': 'Afeganistão',
+    'PK': 'Paquistão',
+    'BD': 'Bangladesh',
+    'LK': 'Sri Lanka',
+    'NP': 'Nepal',
+    'BT': 'Butão',
+    'MM': 'Mianmar',
+    'KH': 'Camboja',
+    'LA': 'Laos',
+    'HK': 'Hong Kong',
+    'TW': 'Taiwan',
+    'MO': 'Macau',
+    'NZ': 'Nova Zelândia',
+    'FJ': 'Fiji',
+    'PG': 'Papua Nova Guiné',
+    'SB': 'Ilhas Salomão',
+    'VU': 'Vanuatu',
+    'WS': 'Samoa',
+    'TO': 'Tonga',
+    'KI': 'Quiribáti',
+    'MH': 'Ilhas Marshall',
+    'FM': 'Micronésia',
+    'PW': 'Palau',
+    'GU': 'Guam',
+    'AS': 'Samoa Americana',
+    'MP': 'Ilhas Marianas do Norte',
+    'VI': 'Ilhas Virgens Americanas',
+    'GS': 'Geórgia do Sul e Ilhas Sandwich do Sul',
+    'FK': 'Ilhas Malvinas',
+    'GI': 'Gibraltar',
+    'MT': 'Malta',
+    'CY': 'Chipre',
+    'IS': 'Islândia',
+    'IE': 'Irlanda',
+    'LU': 'Luxemburgo',
+    'HR': 'Croácia',
+    'SI': 'Eslovênia',
+    'SK': 'Eslováquia',
+    'HU': 'Hungria',
+    'RS': 'Sérvia',
+    'BG': 'Bulgária',
+    'BA': 'Bósnia e Herzegovina',
+    'ME': 'Montenegro',
+    'MK': 'Macedônia do Norte',
+    'AL': 'Albânia',
+    'XK': 'Kosovo',
+    'BY': 'Bielorrússia',
+    'MD': 'Moldávia',
+    'GE': 'Geórgia',
+    'AM': 'Armênia',
+    'AZ': 'Azerbaijão',
+    'KZ': 'Cazaquistão',
+    'UZ': 'Uzbequistão',
+    'TM': 'Turcomenistão',
+    'KG': 'Quirguistão',
+    'TJ': 'Tajiquistão',
+    'MN': 'Mongólia',
+    'KP': 'Coreia do Norte',
+    'TL': 'Timor-Leste',
+    'BN': 'Brunei',
+    'MV': 'Maldivas',
+    'ET': 'Etiópia',
+    'KE': 'Quênia',
+    'TZ': 'Tanzânia',
+    'UG': 'Uganda',
+    'RW': 'Ruanda',
+    'BJ': 'Benin',
+    'BF': 'Burkina Faso',
+    'CI': 'Costa do Marfim',
+    'CM': 'Camarões',
+    'CF': 'República Centro-Africana',
+    'TD': 'Chade',
+    'CG': 'Congo',
+    'CD': 'República Democrática do Congo',
+    'GA': 'Gabão',
+    'GQ': 'Guiné Equatorial',
+    'ST': 'São Tomé e Príncipe',
+    'SC': 'Seicheles',
+    'MU': 'Maurício',
+    'MG': 'Madagascar',
+    'MW': 'Malaui',
+    'MZ': 'Moçambique',
+    'ZM': 'Zâmbia',
+    'ZW': 'Zimbábue',
+    'BW': 'Botsuana',
+    'NA': 'Namíbia',
+    'LS': 'Lesoto',
+    'SZ': 'Eswatini',
+    'DZ': 'Argélia',
+    'MA': 'Marrocos',
+    'TN': 'Tunísia',
+    'LY': 'Líbia',
+    'SD': 'Sudão',
+    'SS': 'Sudão do Sul',
+    'SO': 'Somália',
+    'DJ': 'Djibuti',
+    'ER': 'Eritreia',
+    'GH': 'Gana',
+    'GM': 'Gâmbia',
+    'GN': 'Guiné',
+    'GW': 'Guiné-Bissau',
+    'LR': 'Libéria',
+    'ML': 'Mali',
+    'MR': 'Mauritânia',
+    'NE': 'Níger',
+    'SN': 'Senegal',
+    'SL': 'Serra Leoa',
+    'TG': 'Togo',
+  };
+
+  return countryMap[code] || code;
+}
+
+// Função para fazer download de imagens de times em ZIP
+export async function downloadTeamImages(teams: Team[]): Promise<Buffer> {
+  try {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    const imagesFolder = zip.folder('imagens_times');
+
+    if (!imagesFolder) {
+      throw new Error('Erro ao criar pasta no ZIP');
+    }
+
+    for (const team of teams) {
+      try {
+        // Download do logo
+        if (team.logo) {
+          try {
+            const logoResponse = await axios.get(team.logo, { responseType: 'arraybuffer' });
+            const logoFileName = `${sanitizeFileName(team.nome)}_logo.png`;
+            imagesFolder.file(logoFileName, logoResponse.data);
+          } catch (error) {
+            console.warn(`Erro ao baixar logo de ${team.nome}:`, error);
+          }
+        }
+
+        // Download da bandeira
+        if (team.bandeira) {
+          try {
+            const bandeiraResponse = await axios.get(team.bandeira, { responseType: 'arraybuffer' });
+            const bandeiraFileName = `${sanitizeFileName(team.nome)}_bandeira.png`;
+            imagesFolder.file(bandeiraFileName, bandeiraResponse.data);
+          } catch (error) {
+            console.warn(`Erro ao baixar bandeira de ${team.nome}:`, error);
+          }
+        }
+      } catch (error) {
+        console.warn(`Erro ao processar imagens do time ${team.nome}:`, error);
+      }
+    }
+
+    // Gerar buffer do ZIP
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+    if (!buffer) {
+      throw new Error('Erro ao gerar arquivo ZIP');
+    }
+
+    return buffer;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro ao criar ZIP de imagens de times:', errorMessage);
+    throw error;
+  }
+}
+
+// Função auxiliar para sanitizar nomes de arquivo
+function sanitizeFileName(fileName: string): string {
+  return fileName
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/_+/g, '_')
+    .toLowerCase();
+}

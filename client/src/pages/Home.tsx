@@ -18,6 +18,16 @@ interface Player {
   valorMercado?: string;
 }
 
+interface Team {
+  nome: string;
+  liga: string;
+  orcamento: string;
+  valorClube: string;
+  nacionalidade: string;
+  logo?: string;
+  bandeira?: string;
+}
+
 interface ScraperResult {
   success: boolean;
   error: string | null;
@@ -25,11 +35,20 @@ interface ScraperResult {
   count?: number;
 }
 
+interface TeamResult {
+  success: boolean;
+  error: string | null;
+  teams: Team[];
+  count?: number;
+}
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<'players' | 'teams'>('players');
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [startOffset, setStartOffset] = useState(0);
   const [endOffset, setEndOffset] = useState(60);
@@ -37,6 +56,8 @@ export default function Home() {
   const extractMutation = trpc.scraper.extractPlayers.useMutation();
   const extractBatchMutation = trpc.scraper.extractPlayersBatch.useMutation();
   const downloadImagesMutation = trpc.scraper.downloadImages.useMutation();
+  const extractTeamsMutation = trpc.scraper.extractTeams.useMutation();
+  const downloadTeamImagesMutation = trpc.scraper.downloadTeamImages.useMutation();
 
   const handleExtract = async () => {
     setError(null);
@@ -182,6 +203,100 @@ export default function Home() {
     }
   };
 
+  const handleExtractTeams = async () => {
+    setError(null);
+    setTeams([]);
+
+    if (!url.trim()) {
+      setError("Por favor, cole uma URL do SoFIFA");
+      return;
+    }
+
+    if (!url.includes("sofifa.com")) {
+      setError("A URL deve ser do site sofifa.com");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = (await extractTeamsMutation.mutateAsync({ url })) as TeamResult;
+
+      if (!result.success) {
+        setError(result.error || "Erro desconhecido ao extrair dados");
+        return;
+      }
+
+      setTeams(result.teams || []);
+      toast.success(`${result.count || result.teams?.length || 0} times extraídos com sucesso!`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownloadTeamsJSON = () => {
+    if (teams.length === 0) {
+      toast.error("Nenhum dado para baixar");
+      return;
+    }
+
+    const jsonData = JSON.stringify(teams, null, 2);
+    const blob = new Blob([jsonData], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sofifa_teams_${new Date().toISOString().split("T")[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Arquivo JSON baixado com sucesso!");
+  };
+
+  const handleDownloadTeamImages = async () => {
+    if (teams.length === 0) {
+      toast.error("Nenhum time para baixar imagens");
+      return;
+    }
+
+    const teamsWithImages = teams.filter((t: Team) => t.logo || t.bandeira);
+    if (teamsWithImages.length === 0) {
+      toast.error("Nenhuma imagem disponível para download");
+      return;
+    }
+
+    try {
+      const result = await downloadTeamImagesMutation.mutateAsync({ teams: teamsWithImages });
+      
+      if (result.success && result.data) {
+        const binaryString = atob(result.data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: "application/zip" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `imagens_times_${new Date().toISOString().split("T")[0]}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success(`${teamsWithImages.length} times com imagens baixados com sucesso!`);
+      } else {
+        toast.error(result.message || "Erro ao fazer download das imagens");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao fazer download das imagens";
+      toast.error(errorMessage);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -192,29 +307,57 @@ export default function Home() {
         </div>
 
         {/* Mode Selector */}
-        <div className="mb-6 flex gap-4 justify-center">
-          <Button
-            onClick={() => setIsBatchMode(false)}
-            variant={!isBatchMode ? "default" : "outline"}
-            className={!isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
-          >
-            Extração Simples
-          </Button>
-          <Button
-            onClick={() => setIsBatchMode(true)}
-            variant={isBatchMode ? "default" : "outline"}
-            className={isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
-          >
-            Extração em Lote
-          </Button>
+        <div className="mb-6 flex flex-col gap-4">
+          <div className="flex gap-2 justify-center">
+            <Button
+              onClick={() => setMode('players')}
+              variant={mode === 'players' ? "default" : "outline"}
+              className={mode === 'players' ? "bg-blue-600 hover:bg-blue-700" : ""}
+            >
+              Jogadores
+            </Button>
+            <Button
+              onClick={() => setMode('teams')}
+              variant={mode === 'teams' ? "default" : "outline"}
+              className={mode === 'teams' ? "bg-green-600 hover:bg-green-700" : ""}
+            >
+              Times
+            </Button>
+          </div>
+          {mode === 'players' && (
+            <div className="flex gap-2 justify-center">
+              <Button
+                onClick={() => setIsBatchMode(false)}
+                variant={!isBatchMode ? "default" : "outline"}
+                className={!isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+              >
+                Extração Simples
+              </Button>
+              <Button
+                onClick={() => setIsBatchMode(true)}
+                variant={isBatchMode ? "default" : "outline"}
+                className={isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+              >
+                Extração em Lote
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Input Card */}
         <Card className="mb-6 shadow-lg">
           <CardHeader>
-            <CardTitle>{isBatchMode ? "Extrair Jogadores em Lote" : "Extrair Jogadores"}</CardTitle>
+            <CardTitle>
+              {mode === 'teams'
+                ? "Extrair Times"
+                : isBatchMode
+                ? "Extrair Jogadores em Lote"
+                : "Extrair Jogadores"}
+            </CardTitle>
             <CardDescription>
-              {isBatchMode
+              {mode === 'teams'
+                ? "Cole a URL da página de times do SoFIFA que deseja extrair"
+                : isBatchMode
                 ? "Extraia múltiplas páginas consecutivas fornecendo um intervalo de offsets"
                 : "Cole a URL da página do SoFIFA que deseja extrair"}
             </CardDescription>

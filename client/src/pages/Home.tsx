@@ -421,18 +421,30 @@ export default function Home() {
             )}
 
             <Button
-              onClick={isBatchMode ? handleExtractBatch : handleExtract}
+              onClick={mode === 'teams' ? handleExtractTeams : isBatchMode ? handleExtractBatch : handleExtract}
               disabled={isLoading || !url.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className={`w-full text-white ${
+                mode === 'teams'
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
               size="lg"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {isBatchMode ? "Extraindo em lote..." : "Extraindo..."}
+                  {mode === 'teams'
+                    ? "Extraindo times..."
+                    : isBatchMode
+                    ? "Extraindo em lote..."
+                    : "Extraindo..."}
                 </>
               ) : (
-                isBatchMode ? "Extrair em Lote" : "Extrair Jogadores"
+                mode === 'teams'
+                  ? "Extrair Times"
+                  : isBatchMode
+                  ? "Extrair em Lote"
+                  : "Extrair Jogadores"
               )}
             </Button>
           </CardContent>

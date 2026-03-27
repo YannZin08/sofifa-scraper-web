@@ -805,6 +805,14 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
       }
     });
 
+    if (teams.length === 0) {
+      return {
+        success: false,
+        error: 'Nenhum time encontrado. Verifique a URL ou tente novamente.',
+        teams: [],
+      };
+    }
+
     return {
       success: true,
       error: null,

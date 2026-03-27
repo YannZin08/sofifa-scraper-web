@@ -759,8 +759,15 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
         if (cells.length < 8) return;
 
         // TD[1]: Nome do time + Liga
-        const nomeComLiga = cells.eq(1).text().trim();
-        const [nome, liga] = nomeComLiga.split(/\s+(?=[A-Z])/);
+        const cell1 = cells.eq(1);
+        
+        // Extrair nome do primeiro link
+        const nomeLink = cell1.find('a').first().text().trim();
+        const nome = nomeLink || 'Desconhecido';
+        
+        // Extrair liga do segundo link
+        const ligaLink = cell1.find('a').last().text().trim();
+        const liga = ligaLink || 'Desconhecida';
 
         // TD[6]: Valor do clube
         const valorClube = cells.eq(6).text().trim() || '-';

@@ -568,8 +568,89 @@ export default function Home() {
           </Card>
         )}
 
+        {/* Results - Teams */}
+        {teams.length > 0 && (
+          <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  Resultados da Extração
+                </CardTitle>
+                <CardDescription>{teams.length} times encontrados</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleDownloadTeamsJSON}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size="sm"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Baixar JSON
+                </Button>
+                <Button
+                  onClick={handleDownloadTeamImages}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  size="sm"
+                  disabled={downloadTeamImagesMutation.isPending}
+                >
+                  {downloadTeamImagesMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Baixando...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Baixar Imagens (ZIP)
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Logo</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Liga</th>
+                      <th className="text-right py-3 px-4 font-semibold text-slate-700">Valor do Clube</th>
+                      <th className="text-right py-3 px-4 font-semibold text-slate-700">Orçamento</th>
+                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Nacionalidade</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teams.map((team, index) => (
+                      <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="text-center py-3 px-4">
+                          {team.logo ? (
+                            <img src={team.logo} alt={team.nome} className="w-10 h-10 rounded mx-auto" />
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-medium text-slate-900">{team.nome}</td>
+                        <td className="py-3 px-4 text-slate-600">{team.liga}</td>
+                        <td className="text-right py-3 px-4 font-medium text-slate-900">{team.valorClube}</td>
+                        <td className="text-right py-3 px-4 font-medium text-slate-900">{team.orcamento}</td>
+                        <td className="text-center py-3 px-4">
+                          <span className="inline-block bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-medium">
+                            {team.nacionalidade}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Empty State */}
-        {!isLoading && players.length === 0 && !error && (
+        {!isLoading && players.length === 0 && teams.length === 0 && !error && (
           <Card className="shadow-lg border-dashed">
             <CardContent className="py-12 text-center">
               <p className="text-slate-500 mb-4">Nenhum dado extraído ainda</p>

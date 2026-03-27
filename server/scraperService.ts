@@ -769,11 +769,11 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
         const ligaLink = cell1.find('a').last().text().trim();
         const liga = ligaLink || 'Desconhecida';
 
-        // TD[6]: Valor do clube
-        const valorClube = cells.eq(6).text().trim() || '-';
+        // TD[6]: Orçamento
+        const orcamento = cells.eq(6).text().trim() || '-';
 
-        // TD[7]: Orçamento
-        const orcamento = cells.eq(7).text().trim() || '-';
+        // TD[7]: Valor do clube
+        const valorClube = cells.eq(7).text().trim() || '-';
 
         // Imagens
         const images = $row.find('img');

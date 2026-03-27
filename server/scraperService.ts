@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { load } from 'cheerio';
+import { Readable } from 'stream';
+import path from 'path';
 
 // Mapeamento de posicoes do ingles para portugues abreviado conforme padroes do site
 const POSITION_TRANSLATIONS: Record<string, string> = {
@@ -627,5 +629,63 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
       error: `Erro ao extrair em lote: ${errorMessage}`,
       players: [],
     };
+  }
+}
+
+// Função para fazer download de imagens dos jogadores em ZIP
+export async function downloadPlayerImages(players: Player[]): Promise<Buffer> {
+  try {
+    // Usar JSZip que é mais simples e não requer dependências externas
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    
+    // Criar pasta para imagens
+    const imagesFolder = zip.folder('imagens_jogadores');
+    
+    if (!imagesFolder) {
+      throw new Error('Erro ao criar pasta no ZIP');
+    }
+    
+    // Download de cada imagem
+    for (const player of players) {
+      if (player.imagem) {
+        try {
+          // Sanitizar nome do jogador para usar como nome de arquivo
+          const sanitizedName = player.nome
+            .replace(/[^a-zA-Z0-9\s]/g, '') // Remove caracteres especiais
+            .replace(/\s+/g, '_') // Substitui espaços por underscore
+            .toLowerCase();
+          
+          // Fazer download da imagem
+          const response = await axios.get(player.imagem, {
+            responseType: 'arraybuffer',
+            timeout: 10000,
+          });
+          
+          // Adicionar imagem ao ZIP com nome do jogador
+          const ext = player.imagem.includes('.png') ? 'png' : 'jpg';
+          imagesFolder.file(`${sanitizedName}.${ext}`, response.data);
+          
+          console.log(`✓ Imagem de ${player.nome} adicionada ao ZIP`);
+        } catch (imgError) {
+          const errorMessage = imgError instanceof Error ? imgError.message : 'Erro desconhecido';
+          console.warn(`⚠ Erro ao baixar imagem de ${player.nome}: ${errorMessage}`);
+          // Continuar com próximo jogador em caso de erro
+        }
+      }
+    }
+    
+    // Gerar buffer do ZIP
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' });
+    
+    if (!buffer) {
+      throw new Error('Erro ao gerar arquivo ZIP');
+    }
+    
+    return buffer;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro ao criar ZIP de imagens:', errorMessage);
+    throw error;
   }
 }

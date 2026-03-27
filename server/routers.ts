@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch } from "./scraperService";
+import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch, downloadPlayerImages } from "./scraperService";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -47,6 +47,23 @@ export const appRouter = router({
       })
       .mutation(async ({ input }) => {
         return scrapeSofifaPlayersBatch(input.baseUrl, input.startOffset, input.endOffset, input.step);
+      }),
+    
+    downloadImages: publicProcedure
+      .input((val: unknown) => {
+        if (typeof val === 'object' && val !== null && 'players' in val && Array.isArray((val as any).players)) {
+          return { players: (val as any).players };
+        }
+        throw new Error('Invalid input: players array is required');
+      })
+      .mutation(async ({ input }) => {
+        try {
+          const zipBuffer = await downloadPlayerImages(input.players);
+          return { success: true, data: zipBuffer.toString('base64'), message: 'ZIP gerado com sucesso' };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+          return { success: false, message: `Erro ao fazer download: ${errorMessage}` };
+        }
       }),
   }),
 });

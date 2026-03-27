@@ -36,6 +36,7 @@ export default function Home() {
 
   const extractMutation = trpc.scraper.extractPlayers.useMutation();
   const extractBatchMutation = trpc.scraper.extractPlayersBatch.useMutation();
+  const downloadImagesMutation = trpc.scraper.downloadImages.useMutation();
 
   const handleExtract = async () => {
     setError(null);
@@ -139,6 +140,46 @@ export default function Home() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast.success("Arquivo JSON baixado com sucesso!");
+  };
+
+  const handleDownloadImages = async () => {
+    if (players.length === 0) {
+      toast.error("Nenhum jogador para baixar imagens");
+      return;
+    }
+
+    const playersWithImages = players.filter((p: Player) => p.imagem);
+    if (playersWithImages.length === 0) {
+      toast.error("Nenhuma imagem disponível para download");
+      return;
+    }
+
+    try {
+      const result = await downloadImagesMutation.mutateAsync({ players: playersWithImages });
+      
+      if (result.success && result.data) {
+        const binaryString = atob(result.data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: "application/zip" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `imagens_jogadores_${new Date().toISOString().split("T")[0]}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success(`${playersWithImages.length} imagens baixadas com sucesso!`);
+      } else {
+        toast.error(result.message || "Erro ao fazer download das imagens");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao fazer download das imagens";
+      toast.error(errorMessage);
+    }
   };
 
   return (
@@ -265,14 +306,34 @@ export default function Home() {
                 </CardTitle>
                 <CardDescription>{players.length} jogadores encontrados</CardDescription>
               </div>
-              <Button
-                onClick={handleDownloadJSON}
-                className="bg-green-600 hover:bg-green-700 text-white"
-                size="sm"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Baixar JSON
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleDownloadJSON}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size="sm"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Baixar JSON
+                </Button>
+                <Button
+                  onClick={handleDownloadImages}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  size="sm"
+                  disabled={downloadImagesMutation.isPending}
+                >
+                  {downloadImagesMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Baixando...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Baixar Imagens (ZIP)
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">

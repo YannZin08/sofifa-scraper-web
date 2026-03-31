@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch, downloadPlayerImages, scrapeSofifaTeams, downloadTeamImages, scrapeSofifaTeamDetails } from "./scraperService";
+import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch, downloadPlayerImages, scrapeSofifaTeams, downloadTeamImages, scrapeSofifaTeamDetails, scrapeSofifaTeamDetailsBatch } from "./scraperService";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -103,6 +103,25 @@ export const appRouter = router({
       })
       .mutation(async ({ input }) => {
         return scrapeSofifaTeamDetails(input.url);
+      }),
+    
+    extractTeamDetailsBatch: publicProcedure
+      .input((val: unknown) => {
+        if (typeof val === 'object' && val !== null && 
+            'baseUrl' in val && typeof (val as any).baseUrl === 'string' &&
+            'startOffset' in val && typeof (val as any).startOffset === 'number' &&
+            'endOffset' in val && typeof (val as any).endOffset === 'number') {
+          return {
+            baseUrl: (val as any).baseUrl,
+            startOffset: (val as any).startOffset,
+            endOffset: (val as any).endOffset,
+            step: (val as any).step || 60,
+          };
+        }
+        throw new Error('Invalid input: baseUrl, startOffset, and endOffset are required');
+      })
+      .mutation(async ({ input }) => {
+        return scrapeSofifaTeamDetailsBatch(input.baseUrl, input.startOffset, input.endOffset, input.step);
       }),
   }),
 });

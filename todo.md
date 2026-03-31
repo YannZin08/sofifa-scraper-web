@@ -82,3 +82,20 @@
 - [x] Time rival (Rival team)
 - [x] Prestígio internacional (International prestige)
 - [x] Prestígio local (Domestic prestige)
+
+
+## Sprint 3 - Extração em Lote de Detalhes de Clubes
+
+### Backend
+- [x] Criar função scrapeSofifaTeamDetailsBatch para extração em lote
+- [x] Adicionar endpoint tRPC extractTeamDetailsBatch
+
+### Frontend
+- [x] Adicionar suporte a modo em lote no seletor
+- [x] Adicionar campos de offset inicial e final
+- [x] Implementar handler handleExtractTeamDetailsBatch
+- [x] Atualizar interface para suportar ambos os modos (simples e lote)
+
+### Testes
+- [x] Adicionar testes para validação de entrada em lote
+- [x] Adicionar testes de intervalo de offsets

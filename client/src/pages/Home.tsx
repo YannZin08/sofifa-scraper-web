@@ -76,6 +76,7 @@ export default function Home() {
   const extractTeamsMutation = trpc.scraper.extractTeams.useMutation();
   const downloadTeamImagesMutation = trpc.scraper.downloadTeamImages.useMutation();
   const extractTeamDetailsMutation = trpc.scraper.extractTeamDetails.useMutation();
+  const extractTeamDetailsBatchMutation = trpc.scraper.extractTeamDetailsBatch.useMutation();
 
   const handleExtract = async () => {
     setError(null);
@@ -421,6 +422,24 @@ export default function Home() {
               </Button>
             </div>
           )}
+          {mode === 'details' && (
+            <div className="flex gap-2 justify-center">
+              <Button
+                onClick={() => setIsBatchMode(false)}
+                variant={!isBatchMode ? "default" : "outline"}
+                className={!isBatchMode ? "bg-purple-600 hover:bg-purple-700" : ""}
+              >
+                Detalhes Simples
+              </Button>
+              <Button
+                onClick={() => setIsBatchMode(true)}
+                variant={isBatchMode ? "default" : "outline"}
+                className={isBatchMode ? "bg-purple-600 hover:bg-purple-700" : ""}
+              >
+                Detalhes em Lote
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Input Card */}
@@ -428,7 +447,7 @@ export default function Home() {
           <CardHeader>
             <CardTitle>
               {mode === 'details'
-                ? "Extrair Detalhes de Clubes"
+                ? isBatchMode ? "Extrair Detalhes em Lote" : "Extrair Detalhes de Clubes"
                 : mode === 'teams'
                 ? "Extrair Times"
                 : isBatchMode
@@ -437,7 +456,9 @@ export default function Home() {
             </CardTitle>
             <CardDescription>
               {mode === 'details'
-                ? "Cole a URL da página de times do SoFIFA para extrair detalhes como estádio, rival e prestígios"
+                ? isBatchMode
+                  ? "Extraia detalhes de múltiplas páginas de times fornecendo um intervalo de offsets"
+                  : "Cole a URL da página de times do SoFIFA para extrair detalhes como estádio, rival e prestígios"
                 : mode === 'teams'
                 ? "Cole a URL da página de times do SoFIFA que deseja extrair"
                 : isBatchMode
@@ -506,7 +527,9 @@ export default function Home() {
             <Button
               onClick={
                 mode === 'details'
-                  ? handleExtractTeamDetails
+                  ? isBatchMode
+                    ? handleExtractTeamDetailsBatch
+                    : handleExtractTeamDetails
                   : mode === 'teams'
                   ? handleExtractTeams
                   : isBatchMode
@@ -812,3 +835,53 @@ export default function Home() {
     </div>
   );
 }
+
+  const handleExtractTeamDetailsBatch = async () => {
+    setError(null);
+    setTeamDetails([]);
+
+    if (!url.trim()) {
+      setError("Por favor, cole uma URL do SoFIFA");
+      return;
+    }
+
+    if (!url.includes("sofifa.com")) {
+      setError("A URL deve ser do site sofifa.com");
+      return;
+    }
+
+    if (startOffset < 0 || endOffset < startOffset) {
+      setError("Intervalo de offsets inválido");
+      return;
+    }
+
+    if (endOffset - startOffset > 600) {
+      setError("Intervalo muito grande. Máximo de 600 offsets por vez");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = (await extractTeamDetailsBatchMutation.mutateAsync({
+        baseUrl: url,
+        startOffset,
+        endOffset,
+        step: 60,
+      })) as TeamDetailsResult;
+
+      if (!result.success) {
+        setError(result.error || "Erro desconhecido ao extrair dados em lote");
+        return;
+      }
+
+      setTeamDetails(result.details || []);
+      toast.success(`${result.count || result.details?.length || 0} detalhes de clubes extraídos com sucesso!`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados em lote";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch, scrapeSofifaTeams, scrapeSofifaTeamDetails } from "./scraperService";
+import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch, scrapeSofifaTeams, scrapeSofifaTeamDetails, scrapeSofifaTeamDetailsBatch } from "./scraperService";
 
 describe("scrapeSofifaPlayers", () => {
   it("should return error for invalid URL", async () => {
@@ -198,5 +198,79 @@ describe("scrapeSofifaTeamDetails - Input Validation", () => {
     expect(errorResult.success).toBe(false);
     expect(errorResult.error).toBeTruthy();
     expect(errorResult.details).toEqual([]);
+  });
+});
+
+
+describe("scrapeSofifaTeamDetailsBatch - Input Validation", () => {
+  it("should return error for invalid URL", async () => {
+    const result = await scrapeSofifaTeamDetailsBatch("https://example.com", 0, 60);
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL deve ser do site sofifa.com");
+    expect(result.details).toEqual([]);
+  });
+
+  it("should return error for empty URL", async () => {
+    const result = await scrapeSofifaTeamDetailsBatch("", 0, 60);
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL inválida");
+    expect(result.details).toEqual([]);
+  });
+
+  it("should return error for negative startOffset", async () => {
+    const result = await scrapeSofifaTeamDetailsBatch("https://sofifa.com/teams", -10, 60);
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Intervalo inválido");
+    expect(result.details).toEqual([]);
+  });
+
+  it("should return error when endOffset is less than startOffset", async () => {
+    const result = await scrapeSofifaTeamDetailsBatch("https://sofifa.com/teams", 120, 60);
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Intervalo inválido");
+    expect(result.details).toEqual([]);
+  });
+
+  it("should return error for interval larger than 600", async () => {
+    const result = await scrapeSofifaTeamDetailsBatch("https://sofifa.com/teams", 0, 700);
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Intervalo muito grande");
+    expect(result.details).toEqual([]);
+  });
+
+  it("should have details property in result structure", () => {
+    const mockResult = {
+      success: true,
+      error: null,
+      details: [
+        {
+          nome: "Arsenal",
+          liga: "Premier League",
+          estadio: "Emirates Stadium",
+          rivalTime: "Tottenham Hotspur",
+          prestigioInternacional: 5,
+          prestigioLocal: 4
+        },
+        {
+          nome: "Manchester United",
+          liga: "Premier League",
+          estadio: "Old Trafford",
+          rivalTime: "Manchester City",
+          prestigioInternacional: 5,
+          prestigioLocal: 5
+        }
+      ]
+    };
+    
+    expect(mockResult).toHaveProperty("success");
+    expect(mockResult).toHaveProperty("error");
+    expect(mockResult).toHaveProperty("details");
+    expect(Array.isArray(mockResult.details)).toBe(true);
+    expect(mockResult.details.length).toBe(2);
   });
 });

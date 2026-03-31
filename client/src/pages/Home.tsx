@@ -370,6 +370,56 @@ export default function Home() {
     toast.success("Arquivo JSON baixado com sucesso!");
   };
 
+  const handleExtractTeamDetailsBatch = async () => {
+    setError(null);
+    setTeamDetails([]);
+
+    if (!url.trim()) {
+      setError("Por favor, cole uma URL do SoFIFA");
+      return;
+    }
+
+    if (!url.includes("sofifa.com")) {
+      setError("A URL deve ser do site sofifa.com");
+      return;
+    }
+
+    if (startOffset < 0 || endOffset < startOffset) {
+      setError("Intervalo de offsets inválido");
+      return;
+    }
+
+    if (endOffset - startOffset > 600) {
+      setError("Intervalo muito grande. Máximo de 600 offsets por vez");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = (await extractTeamDetailsBatchMutation.mutateAsync({
+        baseUrl: url,
+        startOffset,
+        endOffset,
+        step: 60,
+      })) as TeamDetailsResult;
+
+      if (!result.success) {
+        setError(result.error || "Erro desconhecido ao extrair dados em lote");
+        return;
+      }
+
+      setTeamDetails(result.details || []);
+      toast.success(`${result.count || result.details?.length || 0} detalhes de clubes extraídos com sucesso!`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados em lote";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -835,53 +885,3 @@ export default function Home() {
     </div>
   );
 }
-
-  const handleExtractTeamDetailsBatch = async () => {
-    setError(null);
-    setTeamDetails([]);
-
-    if (!url.trim()) {
-      setError("Por favor, cole uma URL do SoFIFA");
-      return;
-    }
-
-    if (!url.includes("sofifa.com")) {
-      setError("A URL deve ser do site sofifa.com");
-      return;
-    }
-
-    if (startOffset < 0 || endOffset < startOffset) {
-      setError("Intervalo de offsets inválido");
-      return;
-    }
-
-    if (endOffset - startOffset > 600) {
-      setError("Intervalo muito grande. Máximo de 600 offsets por vez");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const result = (await extractTeamDetailsBatchMutation.mutateAsync({
-        baseUrl: url,
-        startOffset,
-        endOffset,
-        step: 60,
-      })) as TeamDetailsResult;
-
-      if (!result.success) {
-        setError(result.error || "Erro desconhecido ao extrair dados em lote");
-        return;
-      }
-
-      setTeamDetails(result.details || []);
-      toast.success(`${result.count || result.details?.length || 0} detalhes de clubes extraídos com sucesso!`);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados em lote";
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };

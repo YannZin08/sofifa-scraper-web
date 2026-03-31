@@ -99,3 +99,8 @@
 ### Testes
 - [x] Adicionar testes para validação de entrada em lote
 - [x] Adicionar testes de intervalo de offsets
+
+
+## Bugs Encontrados - Sprint 3
+
+- [x] Interface não responde ao clicar em "Extrair" - CORRIGIDO: função handleExtractTeamDetailsBatch estava fora do escopo do componente

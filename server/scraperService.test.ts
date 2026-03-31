@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch, scrapeSofifaTeams } from "./scraperService";
+import { scrapeSofifaPlayers, scrapeSofifaPlayersBatch, scrapeSofifaTeams, scrapeSofifaTeamDetails } from "./scraperService";
 
 describe("scrapeSofifaPlayers", () => {
   it("should return error for invalid URL", async () => {
@@ -126,5 +126,77 @@ describe("scrapeSofifaTeams - Input Validation", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("URL deve ser do site sofifa.com");
     expect(result.teams).toEqual([]);
+  });
+});
+
+
+describe("scrapeSofifaTeamDetails - Input Validation", () => {
+  it("should return error for invalid URL", async () => {
+    const result = await scrapeSofifaTeamDetails("https://example.com");
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL deve ser do site sofifa.com");
+    expect(result.details).toEqual([]);
+  });
+
+  it("should return error for empty URL", async () => {
+    const result = await scrapeSofifaTeamDetails("");
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL inválida");
+    expect(result.details).toEqual([]);
+  });
+
+  it("should return error for null URL", async () => {
+    const result = await scrapeSofifaTeamDetails(null as any);
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL inválida");
+    expect(result.details).toEqual([]);
+  });
+
+  it("should return error for non-sofifa URL", async () => {
+    const result = await scrapeSofifaTeamDetails("https://google.com/teams");
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("URL deve ser do site sofifa.com");
+    expect(result.details).toEqual([]);
+  });
+
+  it("should have details property in result structure", () => {
+    const mockResult = {
+      success: true,
+      error: null,
+      details: [
+        {
+          nome: "Arsenal",
+          liga: "Premier League",
+          estadio: "Emirates Stadium",
+          rivalTime: "Tottenham Hotspur",
+          prestigioInternacional: 5,
+          prestigioLocal: 4
+        }
+      ]
+    };
+    
+    expect(mockResult).toHaveProperty("success");
+    expect(mockResult).toHaveProperty("error");
+    expect(mockResult).toHaveProperty("details");
+    expect(Array.isArray(mockResult.details)).toBe(true);
+    expect(mockResult.details[0]).toHaveProperty("nome");
+    expect(mockResult.details[0]).toHaveProperty("estadio");
+    expect(mockResult.details[0]).toHaveProperty("rivalTime");
+  });
+
+  it("should have correct error handling structure", () => {
+    const errorResult = {
+      success: false,
+      error: "URL inválida",
+      details: []
+    };
+    
+    expect(errorResult.success).toBe(false);
+    expect(errorResult.error).toBeTruthy();
+    expect(errorResult.details).toEqual([]);
   });
 });

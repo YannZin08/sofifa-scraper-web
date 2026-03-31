@@ -709,6 +709,22 @@ interface TeamResult {
   count?: number;
 }
 
+interface TeamDetails {
+  nome: string;
+  liga: string;
+  estadio: string;
+  rivalTime: string;
+  prestigioInternacional: string | number;
+  prestigioLocal: string | number;
+}
+
+interface TeamDetailsResult {
+  success: boolean;
+  error: string | null;
+  details: TeamDetails[];
+  count?: number;
+}
+
 // Função para extrair times
 export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
   try {
@@ -1087,4 +1103,176 @@ function sanitizeFileName(fileName: string): string {
     .replace(/[^a-zA-Z0-9_-]/g, '_')
     .replace(/_+/g, '_')
     .toLowerCase();
+}
+
+// Função para extrair detalhes de um time individual
+async function extractTeamDetailsFromPage(teamUrl: string): Promise<TeamDetails | null> {
+  try {
+    const scraperApiKey = process.env.SCRAPER_API_KEY;
+    if (!scraperApiKey) {
+      throw new Error('SCRAPER_API_KEY não configurada');
+    }
+
+    const response = await axios.get(
+      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(teamUrl)}`,
+      { timeout: 60000 }
+    );
+
+    const $ = load(response.data);
+    
+    // Extrair informações da página do time
+    const details: Partial<TeamDetails> = {};
+
+    // Procurar por labels e seus valores correspondentes
+    const listItems = $('ul.nowrap li');
+    
+    listItems.each((_, item) => {
+      const $item = $(item);
+      const label = $item.find('label').text().trim().toLowerCase();
+      const value = $item.text().replace($item.find('label').text(), '').trim();
+
+      if (label.includes('stadium')) {
+        details.estadio = value || '-';
+      } else if (label.includes('rival')) {
+        // Extrair nome do time rival do link
+        const rivalLink = $item.find('a');
+        details.rivalTime = rivalLink.text().trim() || value || '-';
+      } else if (label.includes('international prestige')) {
+        details.prestigioInternacional = value || '-';
+      } else if (label.includes('domestic prestige')) {
+        details.prestigioLocal = value || '-';
+      }
+    });
+
+    // Se não encontrou informações suficientes, retorna null
+    if (!details.estadio && !details.rivalTime) {
+      return null;
+    }
+
+    return {
+      nome: '',
+      liga: '',
+      estadio: details.estadio || '-',
+      rivalTime: details.rivalTime || '-',
+      prestigioInternacional: details.prestigioInternacional || '-',
+      prestigioLocal: details.prestigioLocal || '-',
+    };
+  } catch (error) {
+    console.error('Erro ao extrair detalhes do time:', error);
+    return null;
+  }
+}
+
+// Função para extrair detalhes de múltiplos times
+export async function scrapeSofifaTeamDetails(url: string): Promise<TeamDetailsResult> {
+  try {
+    if (!url || typeof url !== 'string') {
+      return {
+        success: false,
+        error: 'URL inválida',
+        details: [],
+      };
+    }
+
+    if (!url.includes('sofifa.com')) {
+      return {
+        success: false,
+        error: 'A URL deve ser do site sofifa.com',
+        details: [],
+      };
+    }
+
+    console.log('Extraindo detalhes de times de:', url);
+
+    const scraperApiKey = process.env.SCRAPER_API_KEY;
+    if (!scraperApiKey) {
+      return {
+        success: false,
+        error: 'SCRAPER_API_KEY não configurada',
+        details: [],
+      };
+    }
+
+    // Primeiro, extrair a lista de times
+    const response = await axios.get(
+      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}`,
+      { timeout: 60000 }
+    );
+
+    const $ = load(response.data);
+    const teamLinks: Array<{ nome: string; liga: string; url: string }> = [];
+
+    // Extrair links dos times
+    const rows = $('table tbody tr');
+    rows.each((_, row) => {
+      const $row = $(row);
+      const cells = $row.find('td');
+
+      if (cells.length < 2) return;
+
+      const cell1 = cells.eq(1);
+      const nomeLink = cell1.find('a').first();
+      const nome = nomeLink.text().trim();
+      const href = nomeLink.attr('href');
+
+      const ligaLink = cell1.find('a').last();
+      const liga = ligaLink.text().trim();
+
+      if (nome && href) {
+        teamLinks.push({
+          nome,
+          liga,
+          url: `https://sofifa.com${href}`,
+        });
+      }
+    });
+
+    if (teamLinks.length === 0) {
+      return {
+        success: false,
+        error: 'Nenhum time encontrado. Verifique a URL ou tente novamente.',
+        details: [],
+      };
+    }
+
+    // Extrair detalhes de cada time
+    const details: TeamDetails[] = [];
+    for (const team of teamLinks) {
+      try {
+        const teamDetails = await extractTeamDetailsFromPage(team.url);
+        if (teamDetails) {
+          details.push({
+            ...teamDetails,
+            nome: team.nome,
+            liga: team.liga,
+          });
+        }
+      } catch (error) {
+        console.error(`Erro ao extrair detalhes de ${team.nome}:`, error);
+      }
+    }
+
+    if (details.length === 0) {
+      return {
+        success: false,
+        error: 'Não foi possível extrair detalhes dos times.',
+        details: [],
+      };
+    }
+
+    return {
+      success: true,
+      error: null,
+      details,
+      count: details.length,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro ao extrair detalhes de times:', errorMessage);
+    return {
+      success: false,
+      error: errorMessage,
+      details: [],
+    };
+  }
 }

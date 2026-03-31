@@ -28,6 +28,15 @@ interface Team {
   bandeira?: string;
 }
 
+interface TeamDetails {
+  nome: string;
+  liga: string;
+  estadio: string;
+  rivalTime: string;
+  prestigioInternacional: string | number;
+  prestigioLocal: string | number;
+}
+
 interface ScraperResult {
   success: boolean;
   error: string | null;
@@ -42,13 +51,21 @@ interface TeamResult {
   count?: number;
 }
 
+interface TeamDetailsResult {
+  success: boolean;
+  error: string | null;
+  details: TeamDetails[];
+  count?: number;
+}
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [teamDetails, setTeamDetails] = useState<TeamDetails[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'players' | 'teams'>('players');
+  const [mode, setMode] = useState<'players' | 'teams' | 'details'>('players');
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [startOffset, setStartOffset] = useState(0);
   const [endOffset, setEndOffset] = useState(60);
@@ -58,6 +75,7 @@ export default function Home() {
   const downloadImagesMutation = trpc.scraper.downloadImages.useMutation();
   const extractTeamsMutation = trpc.scraper.extractTeams.useMutation();
   const downloadTeamImagesMutation = trpc.scraper.downloadTeamImages.useMutation();
+  const extractTeamDetailsMutation = trpc.scraper.extractTeamDetails.useMutation();
 
   const handleExtract = async () => {
     setError(null);
@@ -297,6 +315,60 @@ export default function Home() {
     }
   };
 
+  const handleExtractTeamDetails = async () => {
+    setError(null);
+    setTeamDetails([]);
+
+    if (!url.trim()) {
+      setError("Por favor, cole uma URL do SoFIFA");
+      return;
+    }
+
+    if (!url.includes("sofifa.com")) {
+      setError("A URL deve ser do site sofifa.com");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = (await extractTeamDetailsMutation.mutateAsync({ url })) as TeamDetailsResult;
+
+      if (!result.success) {
+        setError(result.error || "Erro desconhecido ao extrair dados");
+        return;
+      }
+
+      setTeamDetails(result.details || []);
+      toast.success(`${result.count || result.details?.length || 0} detalhes de clubes extraídos com sucesso!`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownloadTeamDetailsJSON = () => {
+    if (teamDetails.length === 0) {
+      toast.error("Nenhum dado para baixar");
+      return;
+    }
+
+    const jsonData = JSON.stringify(teamDetails, null, 2);
+    const blob = new Blob([jsonData], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sofifa_team_details_${new Date().toISOString().split("T")[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Arquivo JSON baixado com sucesso!");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -308,7 +380,7 @@ export default function Home() {
 
         {/* Mode Selector */}
         <div className="mb-6 flex flex-col gap-4">
-          <div className="flex gap-2 justify-center">
+          <div className="flex gap-2 justify-center flex-wrap">
             <Button
               onClick={() => setMode('players')}
               variant={mode === 'players' ? "default" : "outline"}
@@ -322,6 +394,13 @@ export default function Home() {
               className={mode === 'teams' ? "bg-green-600 hover:bg-green-700" : ""}
             >
               Times
+            </Button>
+            <Button
+              onClick={() => setMode('details')}
+              variant={mode === 'details' ? "default" : "outline"}
+              className={mode === 'details' ? "bg-purple-600 hover:bg-purple-700" : ""}
+            >
+              Detalhes de Clubes
             </Button>
           </div>
           {mode === 'players' && (
@@ -348,14 +427,18 @@ export default function Home() {
         <Card className="mb-6 shadow-lg">
           <CardHeader>
             <CardTitle>
-              {mode === 'teams'
+              {mode === 'details'
+                ? "Extrair Detalhes de Clubes"
+                : mode === 'teams'
                 ? "Extrair Times"
                 : isBatchMode
                 ? "Extrair Jogadores em Lote"
                 : "Extrair Jogadores"}
             </CardTitle>
             <CardDescription>
-              {mode === 'teams'
+              {mode === 'details'
+                ? "Cole a URL da página de times do SoFIFA para extrair detalhes como estádio, rival e prestígios"
+                : mode === 'teams'
                 ? "Cole a URL da página de times do SoFIFA que deseja extrair"
                 : isBatchMode
                 ? "Extraia múltiplas páginas consecutivas fornecendo um intervalo de offsets"
@@ -421,10 +504,20 @@ export default function Home() {
             )}
 
             <Button
-              onClick={mode === 'teams' ? handleExtractTeams : isBatchMode ? handleExtractBatch : handleExtract}
+              onClick={
+                mode === 'details'
+                  ? handleExtractTeamDetails
+                  : mode === 'teams'
+                  ? handleExtractTeams
+                  : isBatchMode
+                  ? handleExtractBatch
+                  : handleExtract
+              }
               disabled={isLoading || !url.trim()}
               className={`w-full text-white ${
-                mode === 'teams'
+                mode === 'details'
+                  ? 'bg-purple-600 hover:bg-purple-700'
+                  : mode === 'teams'
                   ? 'bg-green-600 hover:bg-green-700'
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}
@@ -433,14 +526,18 @@ export default function Home() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {mode === 'teams'
+                  {mode === 'details'
+                    ? "Extraindo detalhes..."
+                    : mode === 'teams'
                     ? "Extraindo times..."
                     : isBatchMode
                     ? "Extraindo em lote..."
                     : "Extraindo..."}
                 </>
               ) : (
-                mode === 'teams'
+                mode === 'details'
+                  ? "Extrair Detalhes"
+                  : mode === 'teams'
                   ? "Extrair Times"
                   : isBatchMode
                   ? "Extrair em Lote"
@@ -450,8 +547,8 @@ export default function Home() {
           </CardContent>
         </Card>
 
-        {/* Results */}
-        {players.length > 0 && (
+        {/* Results - Players */}
+        {players.length > 0 && mode === 'players' && (
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -569,7 +666,7 @@ export default function Home() {
         )}
 
         {/* Results - Teams */}
-        {teams.length > 0 && (
+        {teams.length > 0 && mode === 'teams' && (
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -613,33 +710,37 @@ export default function Home() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Logo</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Logo</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Liga</th>
-                      <th className="text-right py-3 px-4 font-semibold text-slate-700">Valor do Clube</th>
-                      <th className="text-right py-3 px-4 font-semibold text-slate-700">Orçamento</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Nacionalidade</th>
+                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Orçamento</th>
+                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Valor do Clube</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Nacionalidade</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {teams.map((team, index) => (
-                      <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="text-center py-3 px-4">
+                    {teams.map((team, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-3 px-4 text-center">
                           {team.logo ? (
-                            <img src={team.logo} alt={team.nome} className="w-10 h-10 rounded mx-auto" />
+                            <img src={team.logo} alt={team.nome} className="w-10 h-10 rounded object-cover" />
                           ) : (
                             <span className="text-slate-400 text-xs">-</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 font-medium text-slate-900">{team.nome}</td>
-                        <td className="py-3 px-4 text-slate-600">{team.liga}</td>
-                        <td className="text-right py-3 px-4 font-medium text-slate-900">{team.valorClube}</td>
-                        <td className="text-right py-3 px-4 font-medium text-slate-900">{team.orcamento}</td>
-                        <td className="text-center py-3 px-4">
-                          <span className="inline-block bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-medium">
-                            {team.nacionalidade}
+                        <td className="py-3 px-4 text-slate-900 font-medium">{team.nome}</td>
+                        <td className="py-3 px-4 text-slate-700">{team.liga}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">
+                            {team.orcamento}
                           </span>
                         </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">
+                            {team.valorClube}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700">{team.nacionalidade}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -649,16 +750,61 @@ export default function Home() {
           </Card>
         )}
 
-        {/* Empty State */}
-        {!isLoading && players.length === 0 && teams.length === 0 && !error && (
-          <Card className="shadow-lg border-dashed">
-            <CardContent className="py-12 text-center">
-              <p className="text-slate-500 mb-4">Nenhum dado extraído ainda</p>
-              <p className="text-sm text-slate-400">
-                {isBatchMode
-                  ? "Cole uma URL do SoFIFA, defina o intervalo de offsets e clique em 'Extrair em Lote' para começar"
-                  : "Cole uma URL do SoFIFA e clique em 'Extrair Jogadores' para começar"}
-              </p>
+        {/* Results - Team Details */}
+        {teamDetails.length > 0 && mode === 'details' && (
+          <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  Detalhes de Clubes Extraídos
+                </CardTitle>
+                <CardDescription>{teamDetails.length} clubes encontrados</CardDescription>
+              </div>
+              <Button
+                onClick={handleDownloadTeamDetailsJSON}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                size="sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Baixar JSON
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Liga</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Estádio</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Time Rival</th>
+                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Prestígio Internacional</th>
+                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Prestígio Local</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamDetails.map((detail, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-3 px-4 text-slate-900 font-medium">{detail.nome}</td>
+                        <td className="py-3 px-4 text-slate-700">{detail.liga}</td>
+                        <td className="py-3 px-4 text-slate-700">{detail.estadio}</td>
+                        <td className="py-3 px-4 text-slate-700">{detail.rivalTime}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">
+                            {detail.prestigioInternacional}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded font-semibold">
+                            {detail.prestigioLocal}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         )}

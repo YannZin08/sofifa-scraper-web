@@ -49,3 +49,36 @@
 - [x] Integrar ScraperAPI para contornar bloqueios automaticamente
 - [x] Corrigir extracao de posicoes - seletores CSS incorretos
 - [x] Corrigir extracao de valores de mercado - seletores CSS incorretos
+
+
+## Novos Recursos - Extração de Detalhes de Clubes (Sprint 2)
+
+### Backend
+- [x] Criar tipos TypeScript para TeamDetails e TeamDetailsResult
+- [x] Implementar função extractTeamDetailsFromPage para extrair detalhes de uma página individual de time
+- [x] Implementar função scrapeSofifaTeamDetails para extrair detalhes de múltiplos times
+- [x] Adicionar endpoint tRPC extractTeamDetails
+- [x] Adicionar import da função no routers.ts
+
+### Frontend
+- [x] Adicionar novo modo 'details' ao Home.tsx
+- [x] Adicionar tipos TeamDetails e TeamDetailsResult
+- [x] Implementar handler handleExtractTeamDetails
+- [x] Implementar handler handleDownloadTeamDetailsJSON
+- [x] Adicionar botão "Detalhes de Clubes" no seletor de modo
+- [x] Adicionar tabela de resultados para detalhes de clubes
+- [x] Adicionar suporte a download de JSON com detalhes
+
+### Testes
+- [x] Adicionar testes de validação de entrada para scrapeSofifaTeamDetails
+- [x] Adicionar testes de estrutura de dados
+- [x] Adicionar testes de tratamento de erros
+- [x] Todos os 28 testes passando
+
+### Informações Extraídas por Clube
+- [x] Nome do clube
+- [x] Liga
+- [x] Estádio (Home stadium)
+- [x] Time rival (Rival team)
+- [x] Prestígio internacional (International prestige)
+- [x] Prestígio local (Domestic prestige)

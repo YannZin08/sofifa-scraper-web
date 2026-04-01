@@ -105,3 +105,4 @@
 
 - [x] Interface não responde ao clicar em "Extrair" - CORRIGIDO: função handleExtractTeamDetailsBatch estava fora do escopo do componente
 - [x] Extração de times está sendo abortada - CORRIGIDO: adicionado timeout de 120s ao ScraperAPI e aumentado timeout dos testes para 30s
+- [x] Extração de times retorna "Nenhum time encontrado" - CORRIGIDO: adicionado parâmetro render=false e maxContentLength ao ScraperAPI, implementado fallback para requisição direta

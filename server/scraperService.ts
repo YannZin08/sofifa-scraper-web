@@ -757,8 +757,8 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
 
     console.log('Usando ScraperAPI para contornar bloqueios...');
     const response = await axios.get(
-      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}`,
-      { timeout: 120000 }
+      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}&render=false`,
+      { timeout: 120000, maxContentLength: Infinity, maxBodyLength: Infinity }
     );
 
     const $ = load(response.data);
@@ -846,6 +846,80 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     console.error('Erro ao extrair times:', errorMessage);
+    
+    // Se for erro de conexão incompleta, tentar novamente sem ScraperAPI
+    if (errorMessage.includes('IncompleteRead') || errorMessage.includes('ECONNRESET')) {
+      console.log('Tentando novamente com configuração alternativa...');
+      try {
+        const retryResponse = await axios.get(url, {
+          timeout: 30000,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+        });
+        const $ = load(retryResponse.data);
+        const teams: Team[] = [];
+        const rows = $('table tbody tr');
+        
+        rows.each((index, row) => {
+          try {
+            const $row = $(row);
+            const cells = $row.find('td');
+            if (cells.length < 8) return;
+            
+            const cell1 = cells.eq(1);
+            const nomeLink = cell1.find('a').first().text().trim();
+            const nome = nomeLink || 'Desconhecido';
+            const ligaLink = cell1.find('a').last().text().trim();
+            const liga = ligaLink || 'Desconhecida';
+            const orcamento = cells.eq(6).text().trim() || '-';
+            const valorClube = cells.eq(7).text().trim() || '-';
+            
+            const images = $row.find('img');
+            let logo = '';
+            let bandeira = '';
+            
+            images.each((i, img) => {
+              const $img = $(img);
+              const dataSrc = $img.attr('data-src') || '';
+              if (i === 0 && dataSrc.includes('/team/')) {
+                logo = dataSrc;
+              } else if (i === 1 && dataSrc.includes('/flags/')) {
+                bandeira = dataSrc;
+              }
+            });
+            
+            let nacionalidade = '-';
+            if (bandeira) {
+              const countryCode = bandeira.split('/').pop()?.replace('.png', '').toUpperCase() || '';
+              nacionalidade = translateCountryCode(countryCode);
+            }
+            
+            teams.push({
+              nome: nome || 'Desconhecido',
+              liga: liga || 'Desconhecida',
+              orcamento,
+              valorClube,
+              nacionalidade,
+              logo,
+              bandeira,
+            });
+          } catch (err) {
+            console.error('Erro ao processar linha (retry):', err);
+          }
+        });
+        
+        if (teams.length > 0) {
+          return {
+            success: true,
+            error: null,
+            teams,
+            count: teams.length,
+          };
+        }
+      } catch (retryError) {
+        console.error('Erro na tentativa alternativa:', retryError);
+      }
+    }
+    
     return {
       success: false,
       error: errorMessage,

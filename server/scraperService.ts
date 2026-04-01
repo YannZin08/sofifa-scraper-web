@@ -757,7 +757,8 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
 
     console.log('Usando ScraperAPI para contornar bloqueios...');
     const response = await axios.get(
-      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}`
+      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}`,
+      { timeout: 120000 }
     );
 
     const $ = load(response.data);

@@ -101,6 +101,7 @@
 - [x] Adicionar testes de intervalo de offsets
 
 
-## Bugs Encontrados - Sprint 3
+### Bugs Encontrados - Sprint 3
 
 - [x] Interface não responde ao clicar em "Extrair" - CORRIGIDO: função handleExtractTeamDetailsBatch estava fora do escopo do componente
+- [x] Extração de times está sendo abortada - CORRIGIDO: adicionado timeout de 120s ao ScraperAPI e aumentado timeout dos testes para 30s

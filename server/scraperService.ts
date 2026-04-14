@@ -302,12 +302,12 @@ async function fetchPageWithScraperAPI(url: string): Promise<string> {
     const params = {
       api_key: apiKey,
       url: url,
-      render: 'false', // Não precisa renderizar JavaScript
+      render: 'true', // Não precisa renderizar JavaScript
     };
 
     const response = await axios.get(scraperApiUrl, {
       params,
-      timeout: 60000,
+      timeout: 120000,
       validateStatus: (status) => status < 500,
     });
 

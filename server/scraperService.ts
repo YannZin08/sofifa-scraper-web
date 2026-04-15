@@ -415,9 +415,13 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
         validateStatus: () => true,
       });
 
-      if (response.data && response.data.length > 1000 && response.data.includes('tbody')) {
+      // Aceitar qualquer resposta com tamanho razoavel que contenha elementos de tabela
+      if (response.data && response.data.length > 500 && (response.data.includes('tbody') || response.data.includes('<tr') || response.data.includes('sofifa'))) {
         console.log(`[ScraperAPI] Sucesso! Dados obtidos (${response.data.length} bytes)`);
         return response.data;
+      } else if (response.data && response.data.length > 500) {
+        console.log(`[ScraperAPI] Dados recebidos mas podem estar incompletos (${response.data.length} bytes)`);
+        return response.data; // Tentar mesmo assim
       }
     } catch (error) {
       console.error('[ScraperAPI] Falha:', error instanceof Error ? error.message : String(error));
@@ -465,12 +469,12 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
       });
 
       // Validar se realmente obtemos dados uteis (nao pagina de erro)
-      if (response.data && response.data.length > 1000 && response.data.includes('tbody')) {
+      if (response.data && response.data.length > 500 && (response.data.includes('tbody') || response.data.includes('<tr') || response.data.includes('sofifa'))) {
         console.log(`Sucesso! Status ${response.status}, dados obtidos (${response.data.length} bytes)`);
         return response.data;
       }
 
-      if (response.status === 200 && response.data && response.data.length > 1000) {
+      if (response.status === 200 && response.data && response.data.length > 500) {
         return response.data;
       }
 
@@ -660,13 +664,15 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
         console.log(`[${i + 1}/${offsets.length}] Extraindo página com offset ${offset}...`);
 
         const html = await fetchPageWithRetry(pageUrl);
+        console.log(`  HTML recebido: ${html.length} bytes`);
+        
         const players = extractPlayers(html);
 
         if (players.length > 0) {
           allPlayers.push(...players);
-          console.log(`  ✓ ${players.length} jogadores encontrados`);
+          console.log(`  ✓ ${players.length} jogadores encontrados (total: ${allPlayers.length})`);
         } else {
-          console.log(`  ⚠ Nenhum jogador encontrado nesta página`);
+          console.log(`  ⚠ Nenhum jogador encontrado nesta página (HTML: ${html.length} bytes, contém tbody: ${html.includes('tbody')})`);
         }
 
         // Delay entre requisições para não sobrecarregar

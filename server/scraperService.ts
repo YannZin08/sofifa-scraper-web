@@ -400,7 +400,31 @@ function getRandomProxy(): string | null {
   return null;
 }
 
-async function fetchPageWithRetry(url: string, maxRetries: number = 5): Promise<string> {
+async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<string> {
+  const scraperApiKey = process.env.SCRAPER_API_KEY;
+  
+  // PRIMEIRA OPCAO: Tentar com ScraperAPI com render=true (para JavaScript)
+  if (scraperApiKey) {
+    console.log('[ScraperAPI] Tentando com render=true para contornar Cloudflare...');
+    try {
+      const scraperUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}&render=true&timeout=120000`;
+      const response = await axios.get(scraperUrl, {
+        timeout: 150000,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        validateStatus: () => true,
+      });
+
+      if (response.data && response.data.length > 1000 && response.data.includes('tbody')) {
+        console.log(`[ScraperAPI] Sucesso! Dados obtidos (${response.data.length} bytes)`);
+        return response.data;
+      }
+    } catch (error) {
+      console.error('[ScraperAPI] Falha:', error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  // SEGUNDA OPCAO: Tentar requisicao direta com retry
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -440,13 +464,13 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 5): Promise<
         maxRedirects: 5,
       });
 
-      // Tentar extrair dados mesmo com 403 ou outros erros
-      if (response.data && response.data.length > 0) {
+      // Validar se realmente obtemos dados uteis (nao pagina de erro)
+      if (response.data && response.data.length > 1000 && response.data.includes('tbody')) {
         console.log(`Sucesso! Status ${response.status}, dados obtidos (${response.data.length} bytes)`);
         return response.data;
       }
 
-      if (response.status === 200) {
+      if (response.status === 200 && response.data && response.data.length > 1000) {
         return response.data;
       }
 

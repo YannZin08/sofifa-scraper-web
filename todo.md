@@ -112,3 +112,4 @@
 
 - [x] Posição MEI está sendo trocada por PE na extração de jogadores - CORRIGIDO: ajustado mapeamento de posições (CAM, LAM, RAM → MEI em vez de PE)
 - [x] Extração em lote com offset 600 não pegava as 10 páginas esperadas - CORRIGIDO: ajustado cálculo de número de páginas usando ceil((endOffset - startOffset + 1) / step), agora offset 0-599 = 10 páginas, offset 0-600 = 11 páginas (rejeitado)
+- [x] Apenas 180 jogadores sendo extraidos em vez de ~600 (10 paginas) - CORRIGIDO: modificado fetchPageWithRetry para usar ScraperAPI com render=true como primeira opcao, com validacao melhorada para verificar se HTML contem tabela de jogadores

@@ -654,35 +654,54 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
     // Extrair cada página
     for (let i = 0; i < offsets.length; i++) {
       const offset = offsets[i];
+      let pageSuccess = false;
+      const maxRetries = 3;
       
-      try {
-        // Construir URL com novo offset
-        const separator = baseUrl.includes('?') ? '&' : '?';
-        const urlWithoutOffset = baseUrl.replace(/[?&]offset=\d+/, '');
-        const pageUrl = `${urlWithoutOffset}${separator}offset=${offset}`;
+      for (let retryAttempt = 0; retryAttempt < maxRetries && !pageSuccess; retryAttempt++) {
+        try {
+          // Construir URL com novo offset
+          const separator = baseUrl.includes('?') ? '&' : '?';
+          const urlWithoutOffset = baseUrl.replace(/[?&]offset=\d+/, '');
+          const pageUrl = `${urlWithoutOffset}${separator}offset=${offset}`;
 
-        console.log(`[${i + 1}/${offsets.length}] Extraindo página com offset ${offset}...`);
+          const attemptLabel = retryAttempt > 0 ? ` (tentativa ${retryAttempt + 1}/${maxRetries})` : '';
+          console.log(`[${i + 1}/${offsets.length}] Extraindo página com offset ${offset}...${attemptLabel}`);
 
-        const html = await fetchPageWithRetry(pageUrl);
-        console.log(`  HTML recebido: ${html.length} bytes`);
-        
-        const players = extractPlayers(html);
+          const html = await fetchPageWithRetry(pageUrl);
+          console.log(`  HTML recebido: ${html.length} bytes`);
+          
+          const players = extractPlayers(html);
 
-        if (players.length > 0) {
-          allPlayers.push(...players);
-          console.log(`  ✓ ${players.length} jogadores encontrados (total: ${allPlayers.length})`);
-        } else {
-          console.log(`  ⚠ Nenhum jogador encontrado nesta página (HTML: ${html.length} bytes, contém tbody: ${html.includes('tbody')})`);
+          if (players.length > 0) {
+            allPlayers.push(...players);
+            console.log(`  ✓ ${players.length} jogadores encontrados (total: ${allPlayers.length})`);
+            pageSuccess = true;
+          } else {
+            console.log(`  ⚠ Nenhum jogador encontrado (HTML: ${html.length} bytes, tbody: ${html.includes('tbody')}, <tr: ${html.includes('<tr')})`);
+            // Se não achou jogadores, tenta novamente
+            if (retryAttempt < maxRetries - 1) {
+              console.log(`  Tentando novamente em 2 segundos...`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          }
+        } catch (pageError) {
+          const errorMessage = pageError instanceof Error ? pageError.message : 'Erro desconhecido';
+          console.error(`  Erro ao extrair página com offset ${offset}:`, errorMessage);
+          // Tentar novamente se não foi a última tentativa
+          if (retryAttempt < maxRetries - 1) {
+            console.log(`  Tentando novamente em 2 segundos...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
         }
+      }
 
-        // Delay entre requisições para não sobrecarregar
-        if (i < offsets.length - 1) {
-          await randomDelay(1000, 3000);
-        }
-      } catch (pageError) {
-        const errorMessage = pageError instanceof Error ? pageError.message : 'Erro desconhecido';
-        console.error(`Erro ao extrair página com offset ${offset}:`, errorMessage);
-        // Continuar com próxima página em caso de erro
+      if (!pageSuccess) {
+        console.warn(`Falha permanente na página com offset ${offset} após ${maxRetries} tentativas`);
+      }
+
+      // Delay entre requisições para não sobrecarregar
+      if (i < offsets.length - 1) {
+        await randomDelay(1000, 3000);
       }
     }
 

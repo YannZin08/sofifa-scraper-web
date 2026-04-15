@@ -75,6 +75,27 @@ describe("scrapeSofifaPlayersBatch - Input Validation", () => {
     expect(result.error).toContain("Intervalo muito grande");
   });
 
+  it("should reject exactly 600 offsets (11 pages)", async () => {
+    // offset 0 a 600 com step 60 = 11 offsets (0, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600)
+    // Logica: ceil((600 - 0 + 1) / 60) = ceil(601/60) = 11 páginas
+    // Isso deve ser rejeitado pois > 10
+    const result = await scrapeSofifaPlayersBatch("https://sofifa.com/players", 0, 600);
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Intervalo muito grande");
+    expect(result.error).toContain("11 páginas");
+  });
+
+  it("should accept up to 599 offsets (10 pages)", async () => {
+    // offset 0 a 599 com step 60 = 10 offsets (0, 60, 120, 180, 240, 300, 360, 420, 480, 540)
+    // Logica: ceil((599 - 0 + 1) / 60) = ceil(600/60) = 10 páginas
+    // Isso deve passar na validacao
+    const result = await scrapeSofifaPlayersBatch("https://sofifa.com/players", 0, 599);
+    
+    // Nao vai retornar jogadores (ScraperAPI pode falhar), mas nao deve rejeitar por intervalo
+    expect(result.error).not.toContain("Intervalo muito grande");
+  });
+
   // Testes de requisições reais removidos - ScraperAPI tem timeout inconsistente
   // Use testes de validação de entrada em vez disso
 });

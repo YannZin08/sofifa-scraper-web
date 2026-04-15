@@ -111,3 +111,4 @@
 ## Bugs Encontrados - Sprint 4
 
 - [x] Posição MEI está sendo trocada por PE na extração de jogadores - CORRIGIDO: ajustado mapeamento de posições (CAM, LAM, RAM → MEI em vez de PE)
+- [x] Extração em lote com offset 600 não pegava as 10 páginas esperadas - CORRIGIDO: ajustado cálculo de número de páginas usando ceil((endOffset - startOffset + 1) / step), agora offset 0-599 = 10 páginas, offset 0-600 = 11 páginas (rejeitado)

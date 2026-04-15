@@ -603,10 +603,12 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
       };
     }
 
-    if (endOffset - startOffset > 600) {
+    // Calcular número de páginas (cada página tem ~60 jogadores)
+    const numPages = Math.ceil((endOffset - startOffset + 1) / step);
+    if (numPages > 10) {
       return {
         success: false,
-        error: 'Intervalo muito grande. Máximo de 600 offsets por vez (10 páginas).',
+        error: `Intervalo muito grande. Máximo de 10 páginas (600 offsets). Você pediu ${numPages} páginas.`,
         players: [],
       };
     }
@@ -614,7 +616,7 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
     const allPlayers: Player[] = [];
     const offsets = [];
 
-    // Gerar lista de offsets
+    // Gerar lista de offsets - garantir que não ultrapasse endOffset
     for (let offset = startOffset; offset <= endOffset; offset += step) {
       offsets.push(offset);
     }

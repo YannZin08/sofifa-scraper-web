@@ -106,3 +106,8 @@
 - [x] Interface não responde ao clicar em "Extrair" - CORRIGIDO: função handleExtractTeamDetailsBatch estava fora do escopo do componente
 - [x] Extração de times está sendo abortada - CORRIGIDO: adicionado timeout de 120s ao ScraperAPI e aumentado timeout dos testes para 30s
 - [x] Extração de times retorna "Nenhum time encontrado" - CORRIGIDO: adicionado parâmetro render=false e maxContentLength ao ScraperAPI, implementado fallback para requisição direta
+
+
+## Bugs Encontrados - Sprint 4
+
+- [x] Posição MEI está sendo trocada por PE na extração de jogadores - CORRIGIDO: ajustado mapeamento de posições (CAM, LAM, RAM → MEI em vez de PE)

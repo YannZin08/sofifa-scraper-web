@@ -2,9 +2,31 @@ import axios from 'axios';
 import { load } from 'cheerio';
 import { Readable } from 'stream';
 import path from 'path';
+import puppeteer from 'puppeteer';
+import { HttpProxyAgent } from 'http-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 // Mapeamento de posicoes do ingles para portugues abreviado conforme padroes do site
+// Prioridade: posições do SoFIFA em português (GOL, ZAG, LD, LE, ADD, ADE, VOL, MC, MEI, MD, ME, PD, PE, ATA, SA)
 const POSITION_TRANSLATIONS: Record<string, string> = {
+  // Posições em português (já estão corretas)
+  'GOL': 'GOL',
+  'ZAG': 'ZAG',
+  'LD': 'LD',
+  'LE': 'LE',
+  'ADD': 'ADD',
+  'ADE': 'ADE',
+  'VOL': 'VOL',
+  'MC': 'MC',
+  'MEI': 'MEI',  // IMPORTANTE: Meia não deve ser traduzida para PE
+  'MD': 'MD',
+  'ME': 'ME',
+  'PD': 'PD',
+  'PE': 'PE',
+  'ATA': 'ATA',
+  'SA': 'SA',
+  
+  // Posições em inglês (para compatibilidade)
   'GK': 'GOL',
   'CB': 'ZAG',
   'LB': 'LE',
@@ -13,30 +35,24 @@ const POSITION_TRANSLATIONS: Record<string, string> = {
   'RWB': 'ADD',
   'CM': 'MC',
   'CDM': 'VOL',
-  'CAM': 'PE',
+  'CAM': 'MEI',  // Camisa 10 / Central Attacking Midfielder → MEI
   'LM': 'ME',
   'RM': 'MD',
   'LCM': 'MC',
   'RCM': 'MC',
   'LDM': 'VOL',
   'RDM': 'VOL',
-  'LAM': 'PE',
-  'RAM': 'PE',
-  'MEI': 'MEI',
-  'ME': 'ME',
-  'MD': 'MD',
+  'LAM': 'MEI',  // Left Attacking Midfielder → MEI
+  'RAM': 'MEI',  // Right Attacking Midfielder → MEI
   'ST': 'ATA',
   'CF': 'ATA',
   'LW': 'PE',
   'RW': 'MD',
   'LF': 'SA',
   'RF': 'SA',
-  'ATA': 'ATA',
   'AT': 'ATA',
   'EE': 'PE',
   'ED': 'PE',
-  'SA': 'SA',
-  'PD': 'PE',
 };
 
 function translatePosition(position: string): string {
@@ -288,6 +304,49 @@ async function randomDelay(min: number = 500, max: number = 2000): Promise<void>
   await new Promise(resolve => setTimeout(resolve, delay));
 }
 
+
+async function fetchPageWithPuppeteer(url: string): Promise<string> {
+  let browser;
+  try {
+    console.log('[Puppeteer] Iniciando navegador...');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    
+    console.log('[Puppeteer] Criando página...');
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080 });
+    
+    // Definir headers realistas
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    
+    // Navegar para a página
+    console.log('[Puppeteer] Navegando para:', url);
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+    
+    console.log('[Puppeteer] Página carregada, aguardando 2s...');
+    // Aguardar um pouco para garantir que o conteúdo foi carregado
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Obter o HTML renderizado
+    console.log('[Puppeteer] Obtendo HTML...');
+    const html = await page.content();
+    
+    console.log('[Puppeteer] Fechando navegador...');
+    await browser.close();
+    console.log('[Puppeteer] Sucesso!');
+    return html;
+  } catch (error) {
+    if (browser) {
+      await browser.close();
+    }
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[Puppeteer] Erro:', errorMessage);
+    throw error;
+  }
+}
+
 async function fetchPageWithScraperAPI(url: string): Promise<string> {
   const apiKey = process.env.SCRAPER_API_KEY;
   
@@ -302,12 +361,12 @@ async function fetchPageWithScraperAPI(url: string): Promise<string> {
     const params = {
       api_key: apiKey,
       url: url,
-      render: 'true', // Não precisa renderizar JavaScript
+      render: 'false', // Não precisa renderizar JavaScript
     };
 
     const response = await axios.get(scraperApiUrl, {
       params,
-      timeout: 120000,
+      timeout: 60000,
       validateStatus: (status) => status < 500,
     });
 
@@ -327,87 +386,76 @@ async function fetchPageWithScraperAPI(url: string): Promise<string> {
   }
 }
 
-async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<string> {
+
+// Lista de proxies gratuitos públicos
+const FREE_PROXIES = [
+  'http://proxy.example.com:8080',
+  'http://proxy2.example.com:3128',
+  // Nota: Proxies reais seriam obtidos de um serviço como free-proxy-list.net
+];
+
+function getRandomProxy(): string | null {
+  // Por enquanto, retornar null (sem proxy)
+  // Em produção, isso buscaria proxies reais de um serviço
+  return null;
+}
+
+async function fetchPageWithRetry(url: string, maxRetries: number = 5): Promise<string> {
   let lastError: Error | null = null;
 
-  // Tentar com ScraperAPI primeiro
-  try {
-    return await fetchPageWithScraperAPI(url);
-  } catch (error) {
-    lastError = error instanceof Error ? error : new Error(String(error));
-    console.log('ScraperAPI falhou, tentando sem proxy...');
-  }
-
-  // Fallback: tentar sem proxy com retry
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       if (attempt > 0) {
-        const baseDelay = Math.min(2000 * Math.pow(1.5, attempt - 1), 15000);
-        const randomVariation = Math.random() * 2000 - 1000;
-        const totalDelay = Math.max(1000, baseDelay + randomVariation);
-        
-        console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${Math.round(totalDelay)}ms...`);
-        await new Promise(resolve => setTimeout(resolve, totalDelay));
+        const delay = Math.random() * 3000 + 2000; // 2-5 segundos
+        console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
 
+      const userAgents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+      ];
+
       const headers = {
-        'User-Agent': getRandomUserAgent(),
+        'User-Agent': userAgents[Math.floor(Math.random() * userAgents.length)],
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
         'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'max-age=0',
+        'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
         'Sec-Fetch-Dest': 'document',
         'Sec-Fetch-Mode': 'navigate',
         'Sec-Fetch-Site': 'none',
         'Sec-Fetch-User': '?1',
-        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-        'Referer': 'https://www.google.com/',
+        'Upgrade-Insecure-Requests': '1',
       };
 
       const response = await axios.get(url, {
         headers,
-        timeout: 45000,
-        validateStatus: (status) => status < 500,
+        timeout: 30000,
+        validateStatus: () => true, // Aceitar qualquer status
         maxRedirects: 5,
       });
 
-      if (response.status === 403) {
-        lastError = new Error('O SoFIFA está bloqueando requisições. Use ScraperAPI ou VPN.');
-        
-        if (attempt < maxRetries - 1) {
-          await randomDelay(3000, 5000);
-        }
-        continue;
+      // Tentar extrair dados mesmo com 403 ou outros erros
+      if (response.data && response.data.length > 0) {
+        console.log(`Sucesso! Status ${response.status}, dados obtidos (${response.data.length} bytes)`);
+        return response.data;
       }
 
-      if (response.status === 429) {
-        lastError = new Error('Muitas requisições. Aguardando antes de tentar novamente...');
-        
-        if (attempt < maxRetries - 1) {
-          await randomDelay(5000, 10000);
-        }
-        continue;
+      if (response.status === 200) {
+        return response.data;
       }
 
-      if (response.status !== 200) {
-        lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
-        continue;
-      }
-
-      return response.data;
+      console.log(`HTTP ${response.status} na tentativa ${attempt + 1}, tentando novamente...`);
+      lastError = new Error(`HTTP ${response.status}`)
+      
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error(`Tentativa ${attempt + 1} falhou:`, lastError.message);
-      
-      if (attempt === maxRetries - 1) {
-        break;
-      }
     }
   }
 

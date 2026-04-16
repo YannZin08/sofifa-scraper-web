@@ -857,22 +857,9 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
 
     console.log('Extraindo times de:', url);
 
-    const scraperApiKey = process.env.SCRAPER_API_KEY;
-    if (!scraperApiKey) {
-      return {
-        success: false,
-        error: 'SCRAPER_API_KEY não configurada',
-        teams: [],
-      };
-    }
-
-    console.log('Usando ScraperAPI para contornar bloqueios...');
-    const response = await axios.get(
-      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}&render=false`,
-      { timeout: 120000, maxContentLength: Infinity, maxBodyLength: Infinity }
-    );
-
-    const $ = load(response.data);
+    // Usar fetchPageWithRetry que já tem retry automático e headers avançados
+    const html = await fetchPageWithRetry(url);
+    const $ = load(html);
     const teams: Team[] = [];
 
     // Extrair times da tabela

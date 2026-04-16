@@ -115,3 +115,7 @@
 - [x] Apenas 180 jogadores sendo extraidos em vez de ~600 (10 paginas) - CORRIGIDO: modificado fetchPageWithRetry para usar ScraperAPI com render=true como primeira opcao, com validacao melhorada para verificar se HTML contem tabela de jogadores
 - [x] Apenas 240 jogadores sendo extraidos com offset 0-599 em vez de ~600 - CORRIGIDO: relaxada validacao de HTML em fetchPageWithRetry para aceitar respostas com >500 bytes e multiplos indicadores de tabela (tbody, <tr>, sofifa)
 - [x] Implementar retry automatico por pagina - COMPLETO: cada pagina tenta ate 3 vezes se falhar, com delay de 2 segundos entre tentativas
+
+## Bloqueador Crítico
+
+- [ ] ScraperAPI sem créditos - BLOQUEADOR: Upgrade necessário em https://dashboard.scraperapi.com/billing ou ativar "overages" para contornar Cloudflare do SoFIFA

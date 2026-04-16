@@ -404,7 +404,7 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
   const scraperApiKey = process.env.SCRAPER_API_KEY;
   
   // PRIMEIRA OPCAO: Tentar com ScraperAPI com render=true (para JavaScript)
-  if (scraperApiKey) {
+  if (scraperApiKey && false) { // Desabilitado pois ScraperAPI esta sem creditos
     console.log('[ScraperAPI] Tentando com render=true para contornar Cloudflare...');
     try {
       const scraperUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}&render=true&timeout=120000`;
@@ -415,16 +415,21 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
         validateStatus: () => true,
       });
 
-      // Aceitar qualquer resposta com tamanho razoavel que contenha elementos de tabela
-      if (response.data && response.data.length > 500 && (response.data.includes('tbody') || response.data.includes('<tr') || response.data.includes('sofifa'))) {
+      // Rejeitar páginas de erro do Cloudflare
+      if (response.data && response.data.includes('Cloudflare') && response.data.includes('blocked')) {
+        console.log(`[ScraperAPI] Erro: Página bloqueada pelo Cloudflare`);
+      } else if (response.data && response.data.includes('Attention Required')) {
+        console.log(`[ScraperAPI] Erro: Cloudflare challenge`);
+      } else if (response.data && response.data.length > 500 && (response.data.includes('tbody') || response.data.includes('<tr') || response.data.includes('sofifa'))) {
         console.log(`[ScraperAPI] Sucesso! Dados obtidos (${response.data.length} bytes)`);
         return response.data;
       } else if (response.data && response.data.length > 500) {
         console.log(`[ScraperAPI] Dados recebidos mas podem estar incompletos (${response.data.length} bytes)`);
         return response.data; // Tentar mesmo assim
       }
-    } catch (error) {
-      console.error('[ScraperAPI] Falha:', error instanceof Error ? error.message : String(error));
+    } catch (err: any) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('[ScraperAPI] Falha:', errMsg);
     }
   }
 
@@ -459,6 +464,9 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
         'Sec-Fetch-Site': 'none',
         'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1',
+        'Referer': 'https://www.google.com/',
+        'Connection': 'keep-alive',
+        'DNT': '1',
       };
 
       const response = await axios.get(url, {
@@ -468,13 +476,17 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
         maxRedirects: 5,
       });
 
-      // Validar se realmente obtemos dados uteis (nao pagina de erro)
-      if (response.data && response.data.length > 500 && (response.data.includes('tbody') || response.data.includes('<tr') || response.data.includes('sofifa'))) {
+      // Rejeitar páginas de erro do Cloudflare
+      if (response.data && response.data.includes('Cloudflare') && response.data.includes('blocked')) {
+        console.log(`Erro: Página bloqueada pelo Cloudflare`);
+      } else if (response.data && response.data.includes('Attention Required')) {
+        console.log(`Erro: Cloudflare challenge`);
+      } else if (response.data && response.data.length > 500 && (response.data.includes('tbody') || response.data.includes('<tr') || response.data.includes('sofifa'))) {
         console.log(`Sucesso! Status ${response.status}, dados obtidos (${response.data.length} bytes)`);
         return response.data;
       }
 
-      if (response.status === 200 && response.data && response.data.length > 500) {
+      if (response.status === 200 && response.data && response.data.length > 500 && !response.data.includes('Cloudflare')) {
         return response.data;
       }
 

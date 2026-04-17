@@ -400,7 +400,7 @@ function getRandomProxy(): string | null {
   return null;
 }
 
-async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<string> {
+async function fetchPageWithRetry(url: string, maxRetries: number = 8): Promise<string> {
   const scraperApiKey = process.env.SCRAPER_API_KEY;
   
   // PRIMEIRA OPCAO: Tentar com ScraperAPI com render=true (para JavaScript)
@@ -439,9 +439,12 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       if (attempt > 0) {
-        const delay = Math.random() * 3000 + 2000; // 2-5 segundos
-        console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${Math.round(delay)}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        // Retry exponencial com variação aleatória (como funcionava antes)
+        const baseDelay = Math.min(2000 * Math.pow(1.5, attempt - 1), 15000);
+        const randomVariation = Math.random() * 2000 - 1000; // -1000 a +1000ms
+        const totalDelay = Math.max(1000, baseDelay + randomVariation);
+        console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${Math.round(totalDelay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, totalDelay));
       }
 
       const userAgents = [
@@ -450,6 +453,9 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
       ];
 
       const headers = {
@@ -457,37 +463,55 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
         'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'max-age=0',
         'Pragma': 'no-cache',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
         'Sec-Fetch-Dest': 'document',
         'Sec-Fetch-Mode': 'navigate',
         'Sec-Fetch-Site': 'none',
         'Sec-Fetch-User': '?1',
-        'Upgrade-Insecure-Requests': '1',
+        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
         'Referer': 'https://www.google.com/',
-        'Connection': 'keep-alive',
-        'DNT': '1',
       };
 
       const response = await axios.get(url, {
         headers,
-        timeout: 30000,
-        validateStatus: () => true, // Aceitar qualquer status
+        timeout: 45000,
+        validateStatus: (status) => status < 500,
         maxRedirects: 5,
       });
+      
+      // Tratar 403 e 429 com delays maiores
+      if (response.status === 403) {
+        lastError = new Error('O SoFIFA está bloqueando requisições. Tente novamente em alguns segundos.');
+        if (attempt < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 3000));
+        }
+        continue;
+      }
+      
+      if (response.status === 429) {
+        lastError = new Error('Muitas requisições. Aguardando antes de tentar novamente...');
+        if (attempt < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 5000));
+        }
+        continue;
+      }
+      
+      if (response.status !== 200) {
+        lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+        continue;
+      }
 
-      // Aceitar qualquer resposta com dados (estratégia anterior que funcionava)
+      // Sucesso
       if (response.data && response.data.length > 0) {
         console.log(`Sucesso! Status ${response.status}, dados obtidos (${response.data.length} bytes)`);
         return response.data;
       }
-
-      if (response.status === 200) {
-        return response.data;
-      }
-
-      console.log(`HTTP ${response.status} na tentativa ${attempt + 1}, tentando novamente...`);
-      lastError = new Error(`HTTP ${response.status}`)
       
     } catch (err: any) {
       lastError = err instanceof Error ? err : new Error(String(err));

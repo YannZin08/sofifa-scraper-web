@@ -1184,22 +1184,9 @@ export async function scrapeSofifaTeamDetails(url: string): Promise<TeamDetailsR
 
     console.log('Extraindo detalhes de times de:', url);
 
-    const scraperApiKey = process.env.SCRAPER_API_KEY;
-    if (!scraperApiKey) {
-      return {
-        success: false,
-        error: 'SCRAPER_API_KEY não configurada',
-        details: [],
-      };
-    }
-
-    // Primeiro, extrair a lista de times
-    const response = await axios.get(
-      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}`,
-      { timeout: 60000 }
-    );
-
-    const $ = load(response.data);
+    // Usar fetchPageWithRetry que tem retry automático e headers avançados
+    const html = await fetchPageWithRetry(url);
+    const $ = load(html);
     const teamLinks: Array<{ nome: string; liga: string; url: string }> = [];
 
     // Extrair links dos times
@@ -1272,6 +1259,129 @@ export async function scrapeSofifaTeamDetails(url: string): Promise<TeamDetailsR
     return {
       success: false,
       error: errorMessage,
+      details: [],
+    };
+  }
+}
+
+export async function scrapeSofifaTeamDetailsBatch(
+  baseUrl: string,
+  startOffset: number,
+  endOffset: number,
+  step: number = 60
+): Promise<TeamDetailsResult> {
+  try {
+    if (!baseUrl || typeof baseUrl !== 'string') {
+      return {
+        success: false,
+        error: 'URL inválida',
+        details: [],
+      };
+    }
+    if (!baseUrl.includes('sofifa.com')) {
+      return {
+        success: false,
+        error: 'A URL deve ser do site sofifa.com',
+        details: [],
+      };
+    }
+    if (startOffset < 0 || endOffset < startOffset) {
+      return {
+        success: false,
+        error: 'Intervalo inválido',
+        details: [],
+      };
+    }
+    
+    // Calcular número de páginas (cada página tem ~60 times)
+    const numPages = Math.ceil((endOffset - startOffset + 1) / step);
+    if (numPages > 10) {
+      return {
+        success: false,
+        error: `Intervalo muito grande. Máximo de 10 páginas (600 offsets). Você pediu ${numPages} páginas.`,
+        details: [],
+      };
+    }
+    
+    const allDetails: TeamDetails[] = [];
+    console.log(`Iniciando scraping em lote de detalhes: ${numPages} páginas, offsets: ${startOffset} a ${endOffset}`);
+    
+    for (let offset = startOffset; offset <= endOffset; offset += step) {
+      try {
+        const pageNum = Math.floor((offset - startOffset) / step) + 1;
+        console.log(`[${pageNum}/${numPages}] Extraindo detalhes com offset ${offset}...`);
+        
+        // Construir URL com offset
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        const urlWithOffset = `${baseUrl}${separator}offset=${offset}`;
+        
+        // Usar fetchPageWithRetry que tem retry automático e headers avançados
+        const html = await fetchPageWithRetry(urlWithOffset);
+        const $ = load(html);
+        const teamLinks: Array<{ nome: string; liga: string; url: string }> = [];
+        
+        // Extrair links dos times
+        const rows = $('table tbody tr');
+        rows.each((_, row) => {
+          const $row = $(row);
+          const cells = $row.find('td');
+          if (cells.length < 2) return;
+          const cell1 = cells.eq(1);
+          const nomeLink = cell1.find('a').first();
+          const nome = nomeLink.text().trim();
+          const href = nomeLink.attr('href');
+          const ligaLink = cell1.find('a').last();
+          const liga = ligaLink.text().trim();
+          if (nome && href) {
+            teamLinks.push({
+              nome,
+              liga,
+              url: `https://sofifa.com${href}`,
+            });
+          }
+        });
+        
+        // Extrair detalhes de cada time
+        for (const team of teamLinks) {
+          try {
+            const teamDetails = await extractTeamDetailsFromPage(team.url);
+            if (teamDetails) {
+              allDetails.push({
+                ...teamDetails,
+                nome: team.nome,
+                liga: team.liga,
+              });
+            }
+          } catch (error) {
+            console.error(`Erro ao extrair detalhes de ${team.nome}:`, error);
+          }
+        }
+        console.log(`✓ ${teamLinks.length} times processados nesta página`);
+      } catch (error) {
+        console.error(`Erro ao processar página com offset ${offset}:`, error);
+      }
+    }
+    
+    if (allDetails.length === 0) {
+      return {
+        success: false,
+        error: 'Nenhum detalhe de time encontrado. Verifique a URL ou tente novamente.',
+        details: [],
+      };
+    }
+    
+    return {
+      success: true,
+      error: null,
+      details: allDetails,
+      count: allDetails.length,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro no scraper de detalhes em lote:', errorMessage);
+    return {
+      success: false,
+      error: `Erro ao extrair detalhes: ${errorMessage}`,
       details: [],
     };
   }

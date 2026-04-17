@@ -855,12 +855,23 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
 
     // Usar fetchPageWithRetry que já tem retry automático e headers avançados
     const html = await fetchPageWithRetry(url);
+    console.log(`[DEBUG] HTML recebido: ${html.length} bytes`);
+    console.log(`[DEBUG] Contém 'Cloudflare': ${html.includes('Cloudflare')}`);
+    console.log(`[DEBUG] Contém 'table': ${html.includes('table')}`);
+    console.log(`[DEBUG] Contém 'tbody': ${html.includes('tbody')}`);
+    
     const $ = load(html);
     const teams: Team[] = [];
 
     // Extrair times da tabela
     const rows = $('table tbody tr');
     console.log(`Encontrados ${rows.length} times`);
+    
+    // Se não encontrou com table tbody, tentar apenas tbody
+    if (rows.length === 0) {
+      const rowsAlt = $('tbody tr');
+      console.log(`[DEBUG] Tentando sem 'table': ${rowsAlt.length} linhas`);
+    }
 
     rows.each((index, row) => {
       try {

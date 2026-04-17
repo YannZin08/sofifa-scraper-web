@@ -120,3 +120,4 @@
 
 - [ ] ScraperAPI sem créditos - BLOQUEADOR: Upgrade necessário em https://dashboard.scraperapi.com/billing ou ativar "overages" para contornar Cloudflare do SoFIFA
 - [x] Aplicar retry automatico e headers avancados para extracao de times - COMPLETO: scrapeSofifaTeams agora usa fetchPageWithRetry
+- [x] Reverter validacao rigorosa de Cloudflare - COMPLETO: voltado para estrategia anterior que aceitava qualquer resposta com dados

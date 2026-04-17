@@ -476,25 +476,21 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
         maxRedirects: 5,
       });
 
-      // Rejeitar páginas de erro do Cloudflare
-      if (response.data && response.data.includes('Cloudflare') && response.data.includes('blocked')) {
-        console.log(`Erro: Página bloqueada pelo Cloudflare`);
-      } else if (response.data && response.data.includes('Attention Required')) {
-        console.log(`Erro: Cloudflare challenge`);
-      } else if (response.data && response.data.length > 500 && (response.data.includes('tbody') || response.data.includes('<tr') || response.data.includes('sofifa'))) {
+      // Aceitar qualquer resposta com dados (estratégia anterior que funcionava)
+      if (response.data && response.data.length > 0) {
         console.log(`Sucesso! Status ${response.status}, dados obtidos (${response.data.length} bytes)`);
         return response.data;
       }
 
-      if (response.status === 200 && response.data && response.data.length > 500 && !response.data.includes('Cloudflare')) {
+      if (response.status === 200) {
         return response.data;
       }
 
       console.log(`HTTP ${response.status} na tentativa ${attempt + 1}, tentando novamente...`);
       lastError = new Error(`HTTP ${response.status}`)
       
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+    } catch (err: any) {
+      lastError = err instanceof Error ? err : new Error(String(err));
       console.error(`Tentativa ${attempt + 1} falhou:`, lastError.message);
     }
   }

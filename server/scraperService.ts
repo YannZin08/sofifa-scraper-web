@@ -2,31 +2,9 @@ import axios from 'axios';
 import { load } from 'cheerio';
 import { Readable } from 'stream';
 import path from 'path';
-import puppeteer from 'puppeteer';
-import { HttpProxyAgent } from 'http-proxy-agent';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 
 // Mapeamento de posicoes do ingles para portugues abreviado conforme padroes do site
-// Prioridade: posições do SoFIFA em português (GOL, ZAG, LD, LE, ADD, ADE, VOL, MC, MEI, MD, ME, PD, PE, ATA, SA)
 const POSITION_TRANSLATIONS: Record<string, string> = {
-  // Posições em português (já estão corretas)
-  'GOL': 'GOL',
-  'ZAG': 'ZAG',
-  'LD': 'LD',
-  'LE': 'LE',
-  'ADD': 'ADD',
-  'ADE': 'ADE',
-  'VOL': 'VOL',
-  'MC': 'MC',
-  'MEI': 'MEI',  // IMPORTANTE: Meia não deve ser traduzida para PE
-  'MD': 'MD',
-  'ME': 'ME',
-  'PD': 'PD',
-  'PE': 'PE',
-  'ATA': 'ATA',
-  'SA': 'SA',
-  
-  // Posições em inglês (para compatibilidade)
   'GK': 'GOL',
   'CB': 'ZAG',
   'LB': 'LE',
@@ -35,24 +13,30 @@ const POSITION_TRANSLATIONS: Record<string, string> = {
   'RWB': 'ADD',
   'CM': 'MC',
   'CDM': 'VOL',
-  'CAM': 'MEI',  // Camisa 10 / Central Attacking Midfielder → MEI
+  'CAM': 'PE',
   'LM': 'ME',
   'RM': 'MD',
   'LCM': 'MC',
   'RCM': 'MC',
   'LDM': 'VOL',
   'RDM': 'VOL',
-  'LAM': 'MEI',  // Left Attacking Midfielder → MEI
-  'RAM': 'MEI',  // Right Attacking Midfielder → MEI
+  'LAM': 'PE',
+  'RAM': 'PE',
+  'MEI': 'MEI',
+  'ME': 'ME',
+  'MD': 'MD',
   'ST': 'ATA',
   'CF': 'ATA',
   'LW': 'PE',
   'RW': 'MD',
   'LF': 'SA',
   'RF': 'SA',
+  'ATA': 'ATA',
   'AT': 'ATA',
   'EE': 'PE',
   'ED': 'PE',
+  'SA': 'SA',
+  'PD': 'PE',
 };
 
 function translatePosition(position: string): string {
@@ -304,49 +288,6 @@ async function randomDelay(min: number = 500, max: number = 2000): Promise<void>
   await new Promise(resolve => setTimeout(resolve, delay));
 }
 
-
-async function fetchPageWithPuppeteer(url: string): Promise<string> {
-  let browser;
-  try {
-    console.log('[Puppeteer] Iniciando navegador...');
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    
-    console.log('[Puppeteer] Criando página...');
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1920, height: 1080 });
-    
-    // Definir headers realistas
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    
-    // Navegar para a página
-    console.log('[Puppeteer] Navegando para:', url);
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    
-    console.log('[Puppeteer] Página carregada, aguardando 2s...');
-    // Aguardar um pouco para garantir que o conteúdo foi carregado
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Obter o HTML renderizado
-    console.log('[Puppeteer] Obtendo HTML...');
-    const html = await page.content();
-    
-    console.log('[Puppeteer] Fechando navegador...');
-    await browser.close();
-    console.log('[Puppeteer] Sucesso!');
-    return html;
-  } catch (error) {
-    if (browser) {
-      await browser.close();
-    }
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('[Puppeteer] Erro:', errorMessage);
-    throw error;
-  }
-}
-
 async function fetchPageWithScraperAPI(url: string): Promise<string> {
   const apiKey = process.env.SCRAPER_API_KEY;
   
@@ -386,80 +327,31 @@ async function fetchPageWithScraperAPI(url: string): Promise<string> {
   }
 }
 
-
-// Lista de proxies gratuitos públicos
-const FREE_PROXIES = [
-  'http://proxy.example.com:8080',
-  'http://proxy2.example.com:3128',
-  // Nota: Proxies reais seriam obtidos de um serviço como free-proxy-list.net
-];
-
-function getRandomProxy(): string | null {
-  // Por enquanto, retornar null (sem proxy)
-  // Em produção, isso buscaria proxies reais de um serviço
-  return null;
-}
-
-async function fetchPageWithRetry(url: string, maxRetries: number = 8): Promise<string> {
-  const scraperApiKey = process.env.SCRAPER_API_KEY;
-  
-  // PRIMEIRA OPCAO: Tentar com ScraperAPI com render=true (para JavaScript)
-  if (scraperApiKey && false) { // Desabilitado pois ScraperAPI esta sem creditos
-    console.log('[ScraperAPI] Tentando com render=true para contornar Cloudflare...');
-    try {
-      const scraperUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}&render=true&timeout=120000`;
-      const response = await axios.get(scraperUrl, {
-        timeout: 150000,
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-        validateStatus: () => true,
-      });
-
-      // Rejeitar páginas de erro do Cloudflare
-      if (response.data && response.data.includes('Cloudflare') && response.data.includes('blocked')) {
-        console.log(`[ScraperAPI] Erro: Página bloqueada pelo Cloudflare`);
-      } else if (response.data && response.data.includes('Attention Required')) {
-        console.log(`[ScraperAPI] Erro: Cloudflare challenge`);
-      } else if (response.data && response.data.length > 500 && (response.data.includes('tbody') || response.data.includes('<tr') || response.data.includes('sofifa'))) {
-        console.log(`[ScraperAPI] Sucesso! Dados obtidos (${response.data.length} bytes)`);
-        return response.data;
-      } else if (response.data && response.data.length > 500) {
-        console.log(`[ScraperAPI] Dados recebidos mas podem estar incompletos (${response.data.length} bytes)`);
-        return response.data; // Tentar mesmo assim
-      }
-    } catch (err: any) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error('[ScraperAPI] Falha:', errMsg);
-    }
-  }
-
-  // SEGUNDA OPCAO: Tentar requisicao direta com retry
+async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<string> {
   let lastError: Error | null = null;
 
+  // Tentar com ScraperAPI primeiro
+  try {
+    return await fetchPageWithScraperAPI(url);
+  } catch (error) {
+    lastError = error instanceof Error ? error : new Error(String(error));
+    console.log('ScraperAPI falhou, tentando sem proxy...');
+  }
+
+  // Fallback: tentar sem proxy com retry
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       if (attempt > 0) {
-        // Retry exponencial com variação aleatória (como funcionava antes)
         const baseDelay = Math.min(2000 * Math.pow(1.5, attempt - 1), 15000);
-        const randomVariation = Math.random() * 2000 - 1000; // -1000 a +1000ms
+        const randomVariation = Math.random() * 2000 - 1000;
         const totalDelay = Math.max(1000, baseDelay + randomVariation);
+        
         console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${Math.round(totalDelay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, totalDelay));
       }
 
-      const userAgents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0',
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
-      ];
-
       const headers = {
-        'User-Agent': userAgents[Math.floor(Math.random() * userAgents.length)],
+        'User-Agent': getRandomUserAgent(),
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -484,38 +376,38 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 8): Promise<
         validateStatus: (status) => status < 500,
         maxRedirects: 5,
       });
-      
-      // Tratar 403 e 429 com delays maiores
+
       if (response.status === 403) {
-        lastError = new Error('O SoFIFA está bloqueando requisições. Tente novamente em alguns segundos.');
+        lastError = new Error('O SoFIFA está bloqueando requisições. Use ScraperAPI ou VPN.');
+        
         if (attempt < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 3000));
+          await randomDelay(3000, 5000);
         }
         continue;
       }
-      
+
       if (response.status === 429) {
         lastError = new Error('Muitas requisições. Aguardando antes de tentar novamente...');
+        
         if (attempt < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 5000));
+          await randomDelay(5000, 10000);
         }
         continue;
       }
-      
+
       if (response.status !== 200) {
         lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
         continue;
       }
 
-      // Sucesso
-      if (response.data && response.data.length > 0) {
-        console.log(`Sucesso! Status ${response.status}, dados obtidos (${response.data.length} bytes)`);
-        return response.data;
-      }
-      
-    } catch (err: any) {
-      lastError = err instanceof Error ? err : new Error(String(err));
+      return response.data;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
       console.error(`Tentativa ${attempt + 1} falhou:`, lastError.message);
+      
+      if (attempt === maxRetries - 1) {
+        break;
+      }
     }
   }
 
@@ -663,12 +555,10 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
       };
     }
 
-    // Calcular número de páginas (cada página tem ~60 jogadores)
-    const numPages = Math.ceil((endOffset - startOffset + 1) / step);
-    if (numPages > 10) {
+    if (endOffset - startOffset > 600) {
       return {
         success: false,
-        error: `Intervalo muito grande. Máximo de 10 páginas (600 offsets). Você pediu ${numPages} páginas.`,
+        error: 'Intervalo muito grande. Máximo de 600 offsets por vez (10 páginas).',
         players: [],
       };
     }
@@ -676,7 +566,7 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
     const allPlayers: Player[] = [];
     const offsets = [];
 
-    // Gerar lista de offsets - garantir que não ultrapasse endOffset
+    // Gerar lista de offsets
     for (let offset = startOffset; offset <= endOffset; offset += step) {
       offsets.push(offset);
     }
@@ -686,54 +576,33 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
     // Extrair cada página
     for (let i = 0; i < offsets.length; i++) {
       const offset = offsets[i];
-      let pageSuccess = false;
-      const maxRetries = 3;
       
-      for (let retryAttempt = 0; retryAttempt < maxRetries && !pageSuccess; retryAttempt++) {
-        try {
-          // Construir URL com novo offset
-          const separator = baseUrl.includes('?') ? '&' : '?';
-          const urlWithoutOffset = baseUrl.replace(/[?&]offset=\d+/, '');
-          const pageUrl = `${urlWithoutOffset}${separator}offset=${offset}`;
+      try {
+        // Construir URL com novo offset
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        const urlWithoutOffset = baseUrl.replace(/[?&]offset=\d+/, '');
+        const pageUrl = `${urlWithoutOffset}${separator}offset=${offset}`;
 
-          const attemptLabel = retryAttempt > 0 ? ` (tentativa ${retryAttempt + 1}/${maxRetries})` : '';
-          console.log(`[${i + 1}/${offsets.length}] Extraindo página com offset ${offset}...${attemptLabel}`);
+        console.log(`[${i + 1}/${offsets.length}] Extraindo página com offset ${offset}...`);
 
-          const html = await fetchPageWithRetry(pageUrl);
-          console.log(`  HTML recebido: ${html.length} bytes`);
-          
-          const players = extractPlayers(html);
+        const html = await fetchPageWithRetry(pageUrl);
+        const players = extractPlayers(html);
 
-          if (players.length > 0) {
-            allPlayers.push(...players);
-            console.log(`  ✓ ${players.length} jogadores encontrados (total: ${allPlayers.length})`);
-            pageSuccess = true;
-          } else {
-            console.log(`  ⚠ Nenhum jogador encontrado (HTML: ${html.length} bytes, tbody: ${html.includes('tbody')}, <tr: ${html.includes('<tr')})`);
-            // Se não achou jogadores, tenta novamente
-            if (retryAttempt < maxRetries - 1) {
-              console.log(`  Tentando novamente em 2 segundos...`);
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-          }
-        } catch (pageError) {
-          const errorMessage = pageError instanceof Error ? pageError.message : 'Erro desconhecido';
-          console.error(`  Erro ao extrair página com offset ${offset}:`, errorMessage);
-          // Tentar novamente se não foi a última tentativa
-          if (retryAttempt < maxRetries - 1) {
-            console.log(`  Tentando novamente em 2 segundos...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
+        if (players.length > 0) {
+          allPlayers.push(...players);
+          console.log(`  ✓ ${players.length} jogadores encontrados`);
+        } else {
+          console.log(`  ⚠ Nenhum jogador encontrado nesta página`);
         }
-      }
 
-      if (!pageSuccess) {
-        console.warn(`Falha permanente na página com offset ${offset} após ${maxRetries} tentativas`);
-      }
-
-      // Delay entre requisições para não sobrecarregar
-      if (i < offsets.length - 1) {
-        await randomDelay(1000, 3000);
+        // Delay entre requisições para não sobrecarregar
+        if (i < offsets.length - 1) {
+          await randomDelay(1000, 3000);
+        }
+      } catch (pageError) {
+        const errorMessage = pageError instanceof Error ? pageError.message : 'Erro desconhecido';
+        console.error(`Erro ao extrair página com offset ${offset}:`, errorMessage);
+        // Continuar com próxima página em caso de erro
       }
     }
 
@@ -877,25 +746,26 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
 
     console.log('Extraindo times de:', url);
 
-    // Usar fetchPageWithRetry que já tem retry automático e headers avançados
-    const html = await fetchPageWithRetry(url);
-    console.log(`[DEBUG] HTML recebido: ${html.length} bytes`);
-    console.log(`[DEBUG] Contém 'Cloudflare': ${html.includes('Cloudflare')}`);
-    console.log(`[DEBUG] Contém 'table': ${html.includes('table')}`);
-    console.log(`[DEBUG] Contém 'tbody': ${html.includes('tbody')}`);
-    
-    const $ = load(html);
+    const scraperApiKey = process.env.SCRAPER_API_KEY;
+    if (!scraperApiKey) {
+      return {
+        success: false,
+        error: 'SCRAPER_API_KEY não configurada',
+        teams: [],
+      };
+    }
+
+    console.log('Usando ScraperAPI para contornar bloqueios...');
+    const response = await axios.get(
+      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}`
+    );
+
+    const $ = load(response.data);
     const teams: Team[] = [];
 
     // Extrair times da tabela
     const rows = $('table tbody tr');
     console.log(`Encontrados ${rows.length} times`);
-    
-    // Se não encontrou com table tbody, tentar apenas tbody
-    if (rows.length === 0) {
-      const rowsAlt = $('tbody tr');
-      console.log(`[DEBUG] Tentando sem 'table': ${rowsAlt.length} linhas`);
-    }
 
     rows.each((index, row) => {
       try {
@@ -975,80 +845,6 @@ export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     console.error('Erro ao extrair times:', errorMessage);
-    
-    // Se for erro de conexão incompleta, tentar novamente sem ScraperAPI
-    if (errorMessage.includes('IncompleteRead') || errorMessage.includes('ECONNRESET')) {
-      console.log('Tentando novamente com configuração alternativa...');
-      try {
-        const retryResponse = await axios.get(url, {
-          timeout: 30000,
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-        });
-        const $ = load(retryResponse.data);
-        const teams: Team[] = [];
-        const rows = $('table tbody tr');
-        
-        rows.each((index, row) => {
-          try {
-            const $row = $(row);
-            const cells = $row.find('td');
-            if (cells.length < 8) return;
-            
-            const cell1 = cells.eq(1);
-            const nomeLink = cell1.find('a').first().text().trim();
-            const nome = nomeLink || 'Desconhecido';
-            const ligaLink = cell1.find('a').last().text().trim();
-            const liga = ligaLink || 'Desconhecida';
-            const orcamento = cells.eq(6).text().trim() || '-';
-            const valorClube = cells.eq(7).text().trim() || '-';
-            
-            const images = $row.find('img');
-            let logo = '';
-            let bandeira = '';
-            
-            images.each((i, img) => {
-              const $img = $(img);
-              const dataSrc = $img.attr('data-src') || '';
-              if (i === 0 && dataSrc.includes('/team/')) {
-                logo = dataSrc;
-              } else if (i === 1 && dataSrc.includes('/flags/')) {
-                bandeira = dataSrc;
-              }
-            });
-            
-            let nacionalidade = '-';
-            if (bandeira) {
-              const countryCode = bandeira.split('/').pop()?.replace('.png', '').toUpperCase() || '';
-              nacionalidade = translateCountryCode(countryCode);
-            }
-            
-            teams.push({
-              nome: nome || 'Desconhecido',
-              liga: liga || 'Desconhecida',
-              orcamento,
-              valorClube,
-              nacionalidade,
-              logo,
-              bandeira,
-            });
-          } catch (err) {
-            console.error('Erro ao processar linha (retry):', err);
-          }
-        });
-        
-        if (teams.length > 0) {
-          return {
-            success: true,
-            error: null,
-            teams,
-            count: teams.length,
-          };
-        }
-      } catch (retryError) {
-        console.error('Erro na tentativa alternativa:', retryError);
-      }
-    }
-    
     return {
       success: false,
       error: errorMessage,
@@ -1473,151 +1269,6 @@ export async function scrapeSofifaTeamDetails(url: string): Promise<TeamDetailsR
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     console.error('Erro ao extrair detalhes de times:', errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-      details: [],
-    };
-  }
-}
-
-
-// Função para extrair detalhes de times em lote com offsets
-export async function scrapeSofifaTeamDetailsBatch(
-  baseUrl: string,
-  startOffset: number,
-  endOffset: number,
-  step: number = 60
-): Promise<TeamDetailsResult> {
-  try {
-    if (!baseUrl || typeof baseUrl !== 'string') {
-      return {
-        success: false,
-        error: 'URL inválida',
-        details: [],
-      };
-    }
-
-    if (!baseUrl.includes('sofifa.com')) {
-      return {
-        success: false,
-        error: 'A URL deve ser do site sofifa.com',
-        details: [],
-      };
-    }
-
-    if (startOffset < 0 || endOffset < startOffset) {
-      return {
-        success: false,
-        error: 'Intervalo inválido',
-        details: [],
-      };
-    }
-
-    if (endOffset - startOffset > 600) {
-      return {
-        success: false,
-        error: 'Intervalo muito grande. Máximo de 600 offsets por vez',
-        details: [],
-      };
-    }
-
-    const scraperApiKey = process.env.SCRAPER_API_KEY;
-    if (!scraperApiKey) {
-      return {
-        success: false,
-        error: 'SCRAPER_API_KEY não configurada',
-        details: [],
-      };
-    }
-
-    const numPages = Math.ceil((endOffset - startOffset) / step) + 1;
-    console.log(`Iniciando scraping em lote de detalhes: ${numPages} páginas, offsets: ${startOffset} a ${endOffset}`);
-
-    const allDetails: TeamDetails[] = [];
-
-    for (let offset = startOffset; offset <= endOffset; offset += step) {
-      try {
-        const pageNum = Math.floor((offset - startOffset) / step) + 1;
-        console.log(`[${pageNum}/${numPages}] Extraindo detalhes com offset ${offset}...`);
-
-        // Construir URL com offset
-        const separator = baseUrl.includes('?') ? '&' : '?';
-        const urlWithOffset = `${baseUrl}${separator}offset=${offset}`;
-
-        // Extrair lista de times da página
-        const response = await axios.get(
-          `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(urlWithOffset)}`,
-          { timeout: 60000 }
-        );
-
-        const $ = load(response.data);
-        const teamLinks: Array<{ nome: string; liga: string; url: string }> = [];
-
-        // Extrair links dos times
-        const rows = $('table tbody tr');
-        rows.each((_, row) => {
-          const $row = $(row);
-          const cells = $row.find('td');
-
-          if (cells.length < 2) return;
-
-          const cell1 = cells.eq(1);
-          const nomeLink = cell1.find('a').first();
-          const nome = nomeLink.text().trim();
-          const href = nomeLink.attr('href');
-
-          const ligaLink = cell1.find('a').last();
-          const liga = ligaLink.text().trim();
-
-          if (nome && href) {
-            teamLinks.push({
-              nome,
-              liga,
-              url: `https://sofifa.com${href}`,
-            });
-          }
-        });
-
-        // Extrair detalhes de cada time
-        for (const team of teamLinks) {
-          try {
-            const teamDetails = await extractTeamDetailsFromPage(team.url);
-            if (teamDetails) {
-              allDetails.push({
-                ...teamDetails,
-                nome: team.nome,
-                liga: team.liga,
-              });
-            }
-          } catch (error) {
-            console.error(`Erro ao extrair detalhes de ${team.nome}:`, error);
-          }
-        }
-
-        console.log(`✓ ${teamLinks.length} times processados nesta página`);
-      } catch (error) {
-        console.error(`Erro ao processar página com offset ${offset}:`, error);
-      }
-    }
-
-    if (allDetails.length === 0) {
-      return {
-        success: false,
-        error: 'Não foi possível extrair detalhes dos times.',
-        details: [],
-      };
-    }
-
-    return {
-      success: true,
-      error: null,
-      details: allDetails,
-      count: allDetails.length,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    console.error('Erro ao extrair detalhes de times em lote:', errorMessage);
     return {
       success: false,
       error: errorMessage,

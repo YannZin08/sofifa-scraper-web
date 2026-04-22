@@ -483,14 +483,25 @@ function extractPlayers(html: string): Player[] {
         const $td1 = $cells.eq(1);
         const nome = $td1.find('a[href*="/player/"]').first().text().trim() || '';
         
-        // Extrair posições dos spans dentro de TD[1]
+        // Extrair posicoes dos spans dentro de TD[1]
         const posicoes: string[] = [];
         $td1.find('span').each((_, span) => {
-          const posText = $(span).text().trim();
-          // Filtrar apenas posições válidas (2-4 caracteres)
-          if (posText && posText.length >= 2 && posText.length <= 4 && /^[A-Z]+$/.test(posText)) {
-            posicoes.push(translatePosition(posText));
-          }
+          let posText = $(span).text().trim();
+          
+          // Se o span contiver multiplas posicoes separadas por espaco ou virgula, dividir
+          const posParts = posText.split(/[\s,/]+/).filter(p => p.length > 0);
+          
+          posParts.forEach(pos => {
+            pos = pos.trim();
+            // Filtrar apenas posicoes validas (2-4 caracteres)
+            if (pos && pos.length >= 2 && pos.length <= 4 && /^[A-Z]+$/.test(pos)) {
+              const translated = translatePosition(pos);
+              // Evitar duplicatas
+              if (!posicoes.includes(translated)) {
+                posicoes.push(translated);
+              }
+            }
+          });
         });
         
         // TD[2] - Idade

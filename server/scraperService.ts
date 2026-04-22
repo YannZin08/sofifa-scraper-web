@@ -2,6 +2,7 @@ import axios from 'axios';
 import { load } from 'cheerio';
 import { Readable } from 'stream';
 import path from 'path';
+import puppeteer from 'puppeteer';
 
 // Mapeamento de posicoes do ingles para portugues abreviado conforme padroes do site
 const POSITION_TRANSLATIONS: Record<string, string> = {
@@ -411,7 +412,61 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
     }
   }
 
-  throw lastError || new Error('Falha ao acessar a URL após múltiplas tentativas');
+  // TERCEIRA OPCAO: Fallback para Puppeteer se requisições diretas falharem
+  console.log('[Puppeteer] Tentando com navegador headless como último recurso...');
+  try {
+    const html = await fetchPageWithPuppeteer(url);
+    if (html && html.length > 500) {
+      console.log('[Puppeteer] Sucesso! HTML obtido com Puppeteer');
+      return html;
+    }
+  } catch (puppeteerError) {
+    console.error('[Puppeteer] Falha:', puppeteerError instanceof Error ? puppeteerError.message : String(puppeteerError));
+  }
+  
+  throw lastError || new Error('Falha ao acessar a URL após múltiplas tentativas (requisições diretas e Puppeteer)');
+}
+
+async function fetchPageWithPuppeteer(url: string): Promise<string> {
+  let browser;
+  try {
+    console.log('[Puppeteer] Iniciando navegador...');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    
+    console.log('[Puppeteer] Criando página...');
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080 });
+    
+    // Definir headers realistas
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    
+    // Navegar para a página
+    console.log('[Puppeteer] Navegando para:', url);
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+    
+    console.log('[Puppeteer] Página carregada, aguardando 2s...');
+    // Aguardar um pouco para garantir que o conteúdo foi carregado
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Obter o HTML renderizado
+    console.log('[Puppeteer] Obtendo HTML...');
+    const html = await page.content();
+    
+    console.log('[Puppeteer] Fechando navegador...');
+    await browser.close();
+    console.log('[Puppeteer] Sucesso!');
+    return html;
+  } catch (error) {
+    if (browser) {
+      await browser.close();
+    }
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[Puppeteer] Erro:', errorMessage);
+    throw error;
+  }
 }
 
 function extractPlayers(html: string): Player[] {

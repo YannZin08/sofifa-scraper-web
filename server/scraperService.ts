@@ -1360,10 +1360,10 @@ export async function scrapeSofifaTeamDetailsBatch(
     
     // Calcular número de páginas (cada página tem ~60 times)
     const numPages = Math.ceil((endOffset - startOffset + 1) / step);
-    if (numPages > 10) {
+    if (numPages > 20) {
       return {
         success: false,
-        error: `Intervalo muito grande. Máximo de 10 páginas (600 offsets). Você pediu ${numPages} páginas.`,
+        error: `Intervalo muito grande. Máximo de 20 páginas (1200 offsets). Você pediu ${numPages} páginas.`,
         details: [],
       };
     }

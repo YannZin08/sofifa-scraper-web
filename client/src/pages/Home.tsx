@@ -131,8 +131,8 @@ export default function Home() {
       return;
     }
 
-    if (endOffset - startOffset > 600) {
-      setError("Intervalo muito grande. Máximo de 600 offsets por vez");
+    if (endOffset - startOffset > 1200) {
+      setError("Intervalo muito grande. Máximo de 1200 offsets por vez");
       return;
     }
 
@@ -490,7 +490,7 @@ export default function Home() {
                   <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-blue-700">
                     Cada página contém ~60 jogadores. Use offsets em múltiplos de 60 (0, 60, 120, 180...).
-                    Máximo de 600 offsets por vez (10 páginas).
+                    Máximo de 1200 offsets por vez (20 páginas).
                   </p>
                 </div>
               </>

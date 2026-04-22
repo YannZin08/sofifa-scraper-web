@@ -250,6 +250,7 @@ interface Player {
   overall: number | string;
   potencial: number | string;
   time: string;
+  liga?: string;
   posicoes: string[];
   pais?: string;
   imagem?: string;
@@ -509,8 +510,9 @@ function extractPlayers(html: string): Player[] {
         // TD[4] - Potencial
         const potencial = $cells.eq(4).text().trim() || '';
         
-        // TD[5] - Time (primeiro link)
+        // TD[5] - Time (primeiro link) e Liga (segundo link)
         const time = $cells.eq(5).find('a').first().text().trim() || '';
+        const liga = $cells.eq(5).find('a').eq(1).text().trim() || undefined;
         
         // TD[16] - Valor de Mercado (com unidade M/K)
         // Se a tabela tem poucas colunas (renderização normal), tenta TD[6]
@@ -539,6 +541,7 @@ function extractPlayers(html: string): Player[] {
             overall: isNaN(Number(overall)) ? overall : Number(overall),
             potencial: isNaN(Number(potencial)) ? potencial : Number(potencial),
             time,
+            liga,
             posicoes,
             pais,
             imagem,

@@ -617,10 +617,10 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
       };
     }
 
-    if (endOffset - startOffset > 600) {
+    if (endOffset - startOffset > 1200) {
       return {
         success: false,
-        error: 'Intervalo muito grande. Máximo de 600 offsets por vez (10 páginas).',
+        error: 'Intervalo muito grande. Máximo de 1200 offsets por vez (20 páginas).',
         players: [],
       };
     }

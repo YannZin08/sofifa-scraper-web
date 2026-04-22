@@ -60,16 +60,16 @@ describe("scrapeSofifaPlayersBatch - Input Validation", () => {
     expect(result.players).toEqual([]);
   });
 
-  it("should return error for interval larger than 600", async () => {
-    const result = await scrapeSofifaPlayersBatch("https://sofifa.com/players", 0, 700);
+  it("should return error for interval larger than 1200", async () => {
+    const result = await scrapeSofifaPlayersBatch("https://sofifa.com/players", 0, 1300);
     
     expect(result.success).toBe(false);
     expect(result.error).toContain("Intervalo muito grande");
     expect(result.players).toEqual([]);
   });
 
-  it("should reject interval larger than 600", async () => {
-    const result = await scrapeSofifaPlayersBatch("https://sofifa.com/players", 0, 601);
+  it("should reject interval larger than 1200", async () => {
+    const result = await scrapeSofifaPlayersBatch("https://sofifa.com/players", 0, 1201);
     
     expect(result.success).toBe(false);
     expect(result.error).toContain("Intervalo muito grande");

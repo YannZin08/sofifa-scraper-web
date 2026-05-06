@@ -470,6 +470,12 @@ function extractPlayers(html: string): Player[] {
   const $ = load(html);
   const players: Player[] = [];
 
+  // Validar se é página de erro do Cloudflare
+  if (html.includes('Sorry, you have been blocked') || html.includes('Cloudflare')) {
+    console.error('[Cloudflare] Página bloqueada pelo Cloudflare');
+    throw new Error('SoFIFA está bloqueando requisições. Tente novamente em alguns minutos ou use ScraperAPI com créditos.');
+  }
+
   try {
     $('tbody tr').each((_, row) => {
       try {

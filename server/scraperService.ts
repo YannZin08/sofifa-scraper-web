@@ -336,13 +336,14 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
     console.log('ScraperAPI falhou, tentando sem proxy...');
   }
 
-  // Fallback: tentar sem proxy com retry
+  // Fallback: tentar sem proxy com retry com delays maiores
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       if (attempt > 0) {
-        const baseDelay = Math.min(2000 * Math.pow(1.5, attempt - 1), 15000);
-        const randomVariation = Math.random() * 2000 - 1000;
-        const totalDelay = Math.max(1000, baseDelay + randomVariation);
+        // Aumentar delays progressivamente: 5s, 10s, 20s, 40s
+        const baseDelay = Math.min(5000 * Math.pow(2, attempt - 1), 40000);
+        const randomVariation = Math.random() * 3000 - 1500;
+        const totalDelay = Math.max(3000, baseDelay + randomVariation);
         
         console.log(`Tentativa ${attempt + 1}/${maxRetries} após ${Math.round(totalDelay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, totalDelay));
@@ -379,7 +380,8 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
         lastError = new Error('O SoFIFA está bloqueando requisições. Use ScraperAPI ou VPN.');
         
         if (attempt < maxRetries - 1) {
-          await randomDelay(3000, 5000);
+          // Esperar mais tempo para 403
+          await randomDelay(8000, 15000);
         }
         continue;
       }
@@ -388,7 +390,8 @@ async function fetchPageWithRetry(url: string, maxRetries: number = 3): Promise<
         lastError = new Error('Muitas requisições. Aguardando antes de tentar novamente...');
         
         if (attempt < maxRetries - 1) {
-          await randomDelay(5000, 10000);
+          // Esperar muito mais tempo para 429
+          await randomDelay(15000, 30000);
         }
         continue;
       }

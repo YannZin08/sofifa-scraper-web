@@ -1179,17 +1179,9 @@ function sanitizeFileName(fileName: string): string {
 // Função para extrair detalhes de um time individual
 async function extractTeamDetailsFromPage(teamUrl: string): Promise<TeamDetails | null> {
   try {
-    const scraperApiKey = process.env.SCRAPER_API_KEY;
-    if (!scraperApiKey) {
-      throw new Error('SCRAPER_API_KEY não configurada');
-    }
-
-    const response = await axios.get(
-      `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(teamUrl)}`,
-      { timeout: 60000 }
-    );
-
-    const $ = load(response.data);
+    // Usar fetchPageWithRetry que tem retry automático e Puppeteer como fallback
+    const html = await fetchPageWithRetry(teamUrl);
+    const $ = load(html);
     
     // Extrair informações da página do time
     const details: Partial<TeamDetails> = {};
@@ -1217,6 +1209,7 @@ async function extractTeamDetailsFromPage(teamUrl: string): Promise<TeamDetails 
 
     // Se não encontrou informações suficientes, retorna null
     if (!details.estadio && !details.rivalTime) {
+      console.warn(`Nenhum detalhe encontrado para ${teamUrl}`);
       return null;
     }
 

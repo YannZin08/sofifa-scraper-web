@@ -660,6 +660,9 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
     console.log(`Iniciando scraping em lote: ${offsets.length} páginas, offsets: ${startOffset} a ${endOffset}`);
 
     // Extrair cada página
+    let consecutiveEmptyPages = 0;
+    const maxConsecutiveEmpty = 2; // Parar após 2 páginas vazias consecutivas
+    
     for (let i = 0; i < offsets.length; i++) {
       const offset = offsets[i];
       
@@ -677,8 +680,17 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
         if (players.length > 0) {
           allPlayers.push(...players);
           console.log(`  ✓ ${players.length} jogadores encontrados`);
+          consecutiveEmptyPages = 0; // Reset contador
         } else {
           console.log(`  ⚠ Nenhum jogador encontrado nesta página`);
+          consecutiveEmptyPages++;
+          
+          // Parar se encontrar múltiplas páginas vazias consecutivas
+          if (consecutiveEmptyPages >= maxConsecutiveEmpty) {
+            console.log(`\n⚠️  Detectadas ${consecutiveEmptyPages} páginas vazias consecutivas. Parando extração.`);
+            console.log(`📊 Total de jogadores extraídos: ${allPlayers.length}`);
+            break;
+          }
         }
 
         // Delay entre requisições para não sobrecarregar
@@ -688,7 +700,14 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
       } catch (pageError) {
         const errorMessage = pageError instanceof Error ? pageError.message : 'Erro desconhecido';
         console.error(`Erro ao extrair página com offset ${offset}:`, errorMessage);
-        // Continuar com próxima página em caso de erro
+        consecutiveEmptyPages++;
+        
+        // Parar se encontrar múltiplos erros consecutivos
+        if (consecutiveEmptyPages >= maxConsecutiveEmpty) {
+          console.log(`\n⚠️  Detectados ${consecutiveEmptyPages} erros consecutivos. Parando extração.`);
+          console.log(`📊 Total de jogadores extraídos: ${allPlayers.length}`);
+          break;
+        }
       }
     }
 

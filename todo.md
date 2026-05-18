@@ -123,3 +123,11 @@
 - [x] Deixar apenas valores numéricos (ex: "78-1" → 78, "83-3" → 83)
 - [x] Atualizar testes para validar novos valores
 - [x] Testar extração com URLs reais
+
+
+## Extração Completa em Lote (Sprint 5)
+
+- [x] Adicionar checkbox "Extrair todas as páginas" na UI
+- [x] Implementar lógica para extrair automaticamente 0-1200 offsets
+- [x] Atualizar testes para validar extração completa
+- [x] Testar com URLs reais

@@ -33,6 +33,7 @@ export default function Home() {
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [startOffset, setStartOffset] = useState(0);
   const [endOffset, setEndOffset] = useState(60);
+  const [extractAllPages, setExtractAllPages] = useState(false);
 
   const extractMutation = trpc.scraper.extractPlayers.useMutation();
   const extractBatchMutation = trpc.scraper.extractPlayersBatch.useMutation();
@@ -87,12 +88,16 @@ export default function Home() {
       return;
     }
 
-    if (startOffset < 0 || endOffset < startOffset) {
+    // Se extrair todas as páginas, usar 0-1200
+    const finalStartOffset = extractAllPages ? 0 : startOffset;
+    const finalEndOffset = extractAllPages ? 1200 : endOffset;
+
+    if (finalStartOffset < 0 || finalEndOffset < finalStartOffset) {
       setError("Intervalo de offsets inválido");
       return;
     }
 
-    if (endOffset - startOffset > 1200) {
+    if (finalEndOffset - finalStartOffset > 1200) {
       setError("Intervalo muito grande. Máximo de 1200 offsets por vez");
       return;
     }
@@ -102,8 +107,8 @@ export default function Home() {
     try {
       const result = (await extractBatchMutation.mutateAsync({
         baseUrl: url,
-        startOffset,
-        endOffset,
+        startOffset: finalStartOffset,
+        endOffset: finalEndOffset,
         step: 60,
       })) as ScraperResult;
 
@@ -239,7 +244,22 @@ export default function Home() {
 
             {isBatchMode && (
               <>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="extractAllPages"
+                    checked={extractAllPages}
+                    onChange={(e) => setExtractAllPages(e.target.checked)}
+                    disabled={isLoading}
+                    className="w-4 h-4 rounded"
+                  />
+                  <label htmlFor="extractAllPages" className="text-sm font-medium text-green-700 cursor-pointer">
+                    Extrair todas as 15 paginas (0-1200 offsets)
+                  </label>
+                </div>
+
+                {!extractAllPages && (
+                  <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Offset Inicial</label>
                     <Input
@@ -264,13 +284,15 @@ export default function Home() {
                       step="60"
                     />
                   </div>
-                </div>
+                  </div>
+                )}
 
                 <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-blue-700">
-                    Cada página contém ~60 jogadores. Use offsets em múltiplos de 60 (0, 60, 120, 180...).
-                    Máximo de 1200 offsets por vez (20 páginas).
+                    {extractAllPages
+                      ? "Serão extraídas todas as 15 páginas (~900 jogadores). Isso pode levar alguns minutos."
+                      : "Cada página contém ~60 jogadores. Use offsets em múltiplos de 60 (0, 60, 120, 180...). Máximo de 1200 offsets por vez (20 páginas)."}
                   </p>
                 </div>
               </>
@@ -292,10 +314,10 @@ export default function Home() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {isBatchMode ? "Extraindo em lote..." : "Extraindo..."}
+                  {isBatchMode ? (extractAllPages ? "Extraindo todas as páginas..." : "Extraindo em lote...") : "Extraindo..."}
                 </>
               ) : isBatchMode ? (
-                "Extrair em Lote"
+                extractAllPages ? "Extrair Todas as 15 Páginas" : "Extrair em Lote"
               ) : (
                 "Extrair Jogadores"
               )}

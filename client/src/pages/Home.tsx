@@ -18,25 +18,6 @@ interface Player {
   valorMercado?: string;
 }
 
-interface Team {
-  nome: string;
-  liga: string;
-  orcamento: string;
-  valorClube: string;
-  nacionalidade: string;
-  logo?: string;
-  bandeira?: string;
-}
-
-interface TeamDetails {
-  nome: string;
-  liga: string;
-  estadio: string;
-  rivalTime: string;
-  prestigioInternacional: string | number;
-  prestigioLocal: string | number;
-}
-
 interface ScraperResult {
   success: boolean;
   error: string | null;
@@ -44,28 +25,11 @@ interface ScraperResult {
   count?: number;
 }
 
-interface TeamResult {
-  success: boolean;
-  error: string | null;
-  teams: Team[];
-  count?: number;
-}
-
-interface TeamDetailsResult {
-  success: boolean;
-  error: string | null;
-  details: TeamDetails[];
-  count?: number;
-}
-
 export default function Home() {
   const [url, setUrl] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [teamDetails, setTeamDetails] = useState<TeamDetails[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'players' | 'teams' | 'details'>('players');
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [startOffset, setStartOffset] = useState(0);
   const [endOffset, setEndOffset] = useState(60);
@@ -73,9 +37,6 @@ export default function Home() {
   const extractMutation = trpc.scraper.extractPlayers.useMutation();
   const extractBatchMutation = trpc.scraper.extractPlayersBatch.useMutation();
   const downloadImagesMutation = trpc.scraper.downloadImages.useMutation();
-  const extractTeamsMutation = trpc.scraper.extractTeams.useMutation();
-  const downloadTeamImagesMutation = trpc.scraper.downloadTeamImages.useMutation();
-  const extractTeamDetailsMutation = trpc.scraper.extractTeamDetails.useMutation();
 
   const handleExtract = async () => {
     setError(null);
@@ -221,154 +182,6 @@ export default function Home() {
     }
   };
 
-  const handleExtractTeams = async () => {
-    setError(null);
-    setTeams([]);
-
-    if (!url.trim()) {
-      setError("Por favor, cole uma URL do SoFIFA");
-      return;
-    }
-
-    if (!url.includes("sofifa.com")) {
-      setError("A URL deve ser do site sofifa.com");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const result = (await extractTeamsMutation.mutateAsync({ url })) as TeamResult;
-
-      if (!result.success) {
-        setError(result.error || "Erro desconhecido ao extrair dados");
-        return;
-      }
-
-      setTeams(result.teams || []);
-      toast.success(`${result.count || result.teams?.length || 0} times extraídos com sucesso!`);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados";
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDownloadTeamsJSON = () => {
-    if (teams.length === 0) {
-      toast.error("Nenhum dado para baixar");
-      return;
-    }
-
-    const jsonData = JSON.stringify(teams, null, 2);
-    const blob = new Blob([jsonData], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `sofifa_teams_${new Date().toISOString().split("T")[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("Arquivo JSON baixado com sucesso!");
-  };
-
-  const handleDownloadTeamImages = async () => {
-    if (teams.length === 0) {
-      toast.error("Nenhum time para baixar imagens");
-      return;
-    }
-
-    const teamsWithImages = teams.filter((t: Team) => t.logo || t.bandeira);
-    if (teamsWithImages.length === 0) {
-      toast.error("Nenhuma imagem disponível para download");
-      return;
-    }
-
-    try {
-      const result = await downloadTeamImagesMutation.mutateAsync({ teams: teamsWithImages });
-      
-      if (result.success && result.data) {
-        const binaryString = atob(result.data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: "application/zip" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `imagens_times_${new Date().toISOString().split("T")[0]}.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success(`${teamsWithImages.length} times com imagens baixados com sucesso!`);
-      } else {
-        toast.error(result.message || "Erro ao fazer download das imagens");
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao fazer download das imagens";
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleExtractTeamDetails = async () => {
-    setError(null);
-    setTeamDetails([]);
-
-    if (!url.trim()) {
-      setError("Por favor, cole uma URL do SoFIFA");
-      return;
-    }
-
-    if (!url.includes("sofifa.com")) {
-      setError("A URL deve ser do site sofifa.com");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const result = (await extractTeamDetailsMutation.mutateAsync({ url })) as TeamDetailsResult;
-
-      if (!result.success) {
-        setError(result.error || "Erro desconhecido ao extrair dados");
-        return;
-      }
-
-      setTeamDetails(result.details || []);
-      toast.success(`${result.count || result.details?.length || 0} detalhes de clubes extraídos com sucesso!`);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados";
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDownloadTeamDetailsJSON = () => {
-    if (teamDetails.length === 0) {
-      toast.error("Nenhum dado para baixar");
-      return;
-    }
-
-    const jsonData = JSON.stringify(teamDetails, null, 2);
-    const blob = new Blob([jsonData], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `sofifa_team_details_${new Date().toISOString().split("T")[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("Arquivo JSON baixado com sucesso!");
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -380,67 +193,34 @@ export default function Home() {
 
         {/* Mode Selector */}
         <div className="mb-6 flex flex-col gap-4">
-          <div className="flex gap-2 justify-center flex-wrap">
+          <div className="flex gap-2 justify-center">
             <Button
-              onClick={() => setMode('players')}
-              variant={mode === 'players' ? "default" : "outline"}
-              className={mode === 'players' ? "bg-blue-600 hover:bg-blue-700" : ""}
+              onClick={() => setIsBatchMode(false)}
+              variant={!isBatchMode ? "default" : "outline"}
+              className={!isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
             >
-              Jogadores
+              Extração Simples
             </Button>
             <Button
-              onClick={() => setMode('teams')}
-              variant={mode === 'teams' ? "default" : "outline"}
-              className={mode === 'teams' ? "bg-green-600 hover:bg-green-700" : ""}
+              onClick={() => setIsBatchMode(true)}
+              variant={isBatchMode ? "default" : "outline"}
+              className={isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
             >
-              Times
-            </Button>
-            <Button
-              onClick={() => setMode('details')}
-              variant={mode === 'details' ? "default" : "outline"}
-              className={mode === 'details' ? "bg-purple-600 hover:bg-purple-700" : ""}
-            >
-              Detalhes de Clubes
+              Extração em Lote
             </Button>
           </div>
-          {mode === 'players' && (
-            <div className="flex gap-2 justify-center">
-              <Button
-                onClick={() => setIsBatchMode(false)}
-                variant={!isBatchMode ? "default" : "outline"}
-                className={!isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
-              >
-                Extração Simples
-              </Button>
-              <Button
-                onClick={() => setIsBatchMode(true)}
-                variant={isBatchMode ? "default" : "outline"}
-                className={isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
-              >
-                Extração em Lote
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Input Card */}
         <Card className="mb-6 shadow-lg">
           <CardHeader>
             <CardTitle>
-              {mode === 'details'
-                ? "Extrair Detalhes de Clubes"
-                : mode === 'teams'
-                ? "Extrair Times"
-                : isBatchMode
+              {isBatchMode
                 ? "Extrair Jogadores em Lote"
                 : "Extrair Jogadores"}
             </CardTitle>
             <CardDescription>
-              {mode === 'details'
-                ? "Cole a URL da página de times do SoFIFA para extrair detalhes como estádio, rival e prestígios"
-                : mode === 'teams'
-                ? "Cole a URL da página de times do SoFIFA que deseja extrair"
-                : isBatchMode
+              {isBatchMode
                 ? "Extraia múltiplas páginas consecutivas fornecendo um intervalo de offsets"
                 : "Cole a URL da página do SoFIFA que deseja extrair"}
             </CardDescription>
@@ -504,51 +284,27 @@ export default function Home() {
             )}
 
             <Button
-              onClick={
-                mode === 'details'
-                  ? handleExtractTeamDetails
-                  : mode === 'teams'
-                  ? handleExtractTeams
-                  : isBatchMode
-                  ? handleExtractBatch
-                  : handleExtract
-              }
+              onClick={isBatchMode ? handleExtractBatch : handleExtract}
               disabled={isLoading || !url.trim()}
-              className={`w-full text-white ${
-                mode === 'details'
-                  ? 'bg-purple-600 hover:bg-purple-700'
-                  : mode === 'teams'
-                  ? 'bg-green-600 hover:bg-green-700'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
+              className="w-full text-white bg-blue-600 hover:bg-blue-700"
               size="lg"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {mode === 'details'
-                    ? "Extraindo detalhes..."
-                    : mode === 'teams'
-                    ? "Extraindo times..."
-                    : isBatchMode
-                    ? "Extraindo em lote..."
-                    : "Extraindo..."}
+                  {isBatchMode ? "Extraindo em lote..." : "Extraindo..."}
                 </>
+              ) : isBatchMode ? (
+                "Extrair em Lote"
               ) : (
-                mode === 'details'
-                  ? "Extrair Detalhes"
-                  : mode === 'teams'
-                  ? "Extrair Times"
-                  : isBatchMode
-                  ? "Extrair em Lote"
-                  : "Extrair Jogadores"
+                "Extrair Jogadores"
               )}
             </Button>
           </CardContent>
         </Card>
 
         {/* Results - Players */}
-        {players.length > 0 && mode === 'players' && (
+        {players.length > 0 && (
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -665,149 +421,7 @@ export default function Home() {
           </Card>
         )}
 
-        {/* Results - Teams */}
-        {teams.length > 0 && mode === 'teams' && (
-          <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  Resultados da Extração
-                </CardTitle>
-                <CardDescription>{teams.length} times encontrados</CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleDownloadTeamsJSON}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  size="sm"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Baixar JSON
-                </Button>
-                <Button
-                  onClick={handleDownloadTeamImages}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                  size="sm"
-                  disabled={downloadTeamImagesMutation.isPending}
-                >
-                  {downloadTeamImagesMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Baixando...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4 mr-2" />
-                      Baixar Imagens (ZIP)
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Logo</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Liga</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Orçamento</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Valor do Clube</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Nacionalidade</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teams.map((team, idx) => (
-                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-3 px-4 text-center">
-                          {team.logo ? (
-                            <img src={team.logo} alt={team.nome} className="w-10 h-10 rounded object-cover" />
-                          ) : (
-                            <span className="text-slate-400 text-xs">-</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-slate-900 font-medium">{team.nome}</td>
-                        <td className="py-3 px-4 text-slate-700">{team.liga}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">
-                            {team.orcamento}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">
-                            {team.valorClube}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-slate-700">{team.nacionalidade}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Results - Team Details */}
-        {teamDetails.length > 0 && mode === 'details' && (
-          <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  Detalhes de Clubes Extraídos
-                </CardTitle>
-                <CardDescription>{teamDetails.length} clubes encontrados</CardDescription>
-              </div>
-              <Button
-                onClick={handleDownloadTeamDetailsJSON}
-                className="bg-green-600 hover:bg-green-700 text-white"
-                size="sm"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Baixar JSON
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Liga</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Estádio</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Time Rival</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Prestígio Internacional</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Prestígio Local</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teamDetails.map((detail, idx) => (
-                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-3 px-4 text-slate-900 font-medium">{detail.nome}</td>
-                        <td className="py-3 px-4 text-slate-700">{detail.liga}</td>
-                        <td className="py-3 px-4 text-slate-700">{detail.estadio}</td>
-                        <td className="py-3 px-4 text-slate-700">{detail.rivalTime}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">
-                            {detail.prestigioInternacional}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded font-semibold">
-                            {detail.prestigioLocal}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

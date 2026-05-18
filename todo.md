@@ -82,3 +82,36 @@
 - [x] Time rival (Rival team)
 - [x] Prestígio internacional (International prestige)
 - [x] Prestígio local (Domestic prestige)
+
+
+## Limpeza - Remover Funcionalidades de Times (Sprint 3)
+
+### Backend
+- [x] Remover função scrapeSofifaTeams
+- [x] Remover função downloadTeamImages
+- [x] Remover função extractTeamDetailsFromPage
+- [x] Remover função scrapeSofifaTeamDetails
+- [x] Remover função scrapeSofifaTeamDetailsBatch
+- [x] Remover tipos Team, TeamResult, TeamDetails, TeamDetailsResult
+- [x] Remover testes de times do arquivo de testes
+
+### Frontend
+- [x] Remover abas de "Times" e "Detalhes de Clubes"
+- [x] Remover mutações extractTeamsMutation, downloadTeamImagesMutation, extractTeamDetailsMutation
+- [x] Remover funções handleExtractTeams, handleDownloadTeamsJSON, handleDownloadTeamImages, handleExtractTeamDetails, handleDownloadTeamDetailsJSON
+- [x] Remover interfaces Team, TeamResult, TeamDetails, TeamDetailsResult
+- [x] Remover estados setTeams, setTeamDetails
+- [x] Simplificar seletor de modo para apenas "Extração Simples" e "Extração em Lote"
+- [x] Remover seções de resultados para Times e Detalhes de Clubes
+- [x] Remover CardTitle e CardDescription condicionais baseados em mode
+
+### Testes
+- [x] Remover imports de scrapeSofifaTeams e scrapeSofifaTeamDetails
+- [x] Remover todos os testes de Times
+- [x] Remover todos os testes de TeamDetails
+- [x] Todos os 16 testes passando (apenas testes de Players)
+
+### Build
+- [x] Verificar que build passa sem erros
+- [x] Verificar que testes passam sem erros
+- [x] Aplicação agora focada apenas em extração de Jogadores

@@ -7,17 +7,18 @@
   ],
   "dev_command": "pnpm run dev",
   "env_vars": {
-    "DATABASE_URL": "mysql://2P1JAKZ1mtuHiGq.root:VOnKJ5NIi980DbRjdA99@gateway05.us-east-1.prod.aws.tidbcloud.com:4000/8CJCojCuYgeUWowiuwpcH4?ssl={\"rejectUnauthorized\":true}"
+    "DATABASE_URL": "mysql://2P1JAKZ1mtuHiGq.root:VOnKJ5NIi980DbRjdA99@gateway05.us-east-1.prod.aws.tidbcloud.com:4000/8CJCojCuYgeUWowiuwpcH4?ssl={\"rejectUnauthorized\":true}",
+    "DRIZZLE_DATABASE_URL": "mysql://2P1JAKZ1mtuHiGq.root:VOnKJ5NIi980DbRjdA99@gateway05.us-east-1.prod.aws.tidbcloud.com:4000/8CJCojCuYgeUWowiuwpcH4?ssl={\"rejectUnauthorized\":true}"
   },
   "experiments": [
     "no_db_push"
   ],
   "git_remote": {
     "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663471413515/8CJCojCuYgeUWowiuwpcH4",
-    "access_key_id": "ASIAZV3A2ECZHKQWPLY3",
-    "secret_access_key": "DtUJ3w3pb3OzcIJB5d6DRZhqlg9V7Van7h7758+a",
-    "session_token": "IQoJb3JpZ2luX2VjEJf//////////wEaCXVzLWVhc3QtMSJIMEYCIQDb4PM9oZRVaMF8GtsKDz4HSSEIFYSom0dmY7yrEKxW1wIhANM83uSJpFpRdkG/8dZaMChWzeJdjb7WJfr2jrx7/Kl6KvYDCF8QBBoMNjY1Mzg2MDk4ODY2IgyH+a1wa8ErCQgKFQgq0wNS2dzamvDUpSe3SSJCq7rN80qz4G0PaM67rsi6/qQMdyvqbw2yTNgJvWlkoQYjdyefJ0/rFZhYRgpvszy/OLg6kY5yD/55mqL0Ix2O8jk0p1ysjOUu/2gxo6TsOhXU3H00L5/UJUBbC/Ta30f4V10V/z4U/Ps5MOD/RJVlIcjmRDuYhKZlpr1qtGzYdgq3Zbz8oNJ0qBcFUu91G/dIaibzolU9NogpsAb9a6m5W6rCxQqkV49WCeD2t7Onh0F6ho9NC0MN10RQfajOD5XRNayLYy7l+1vYcmyXGBmeDbNNFyAhl73B8d3cyfs9008ZBWn6PFrcX8OJVOEd8iH1hnrTCoTV35/14tqpIxrb1w5Ya8HlqQOO6LNK0bZlfQ6mv4KKPOZzmhSX5rTS8wlspLAvo5QnMFXTBvwSNm04Te2taDv/aePAvEhuKOxEWRnFNPoIsh8zcAEjeUL1vT+4vi++yNDAsj2fgYO5lqXY9JUTg+qwv68w6fCI1rJIUt3Oifz9Tvm4VCVMAktz/Idnfr9i3EPhq9GiOuMhHjuYWhff0Nr4LxboT1c7k7muWvixhOO2Ln8b9NhocbSuAkIXfJYf+ogaPYUN8S+j1DAMIHkji9ZFgzD4sJfQBjqcAc6Ypmu/b4arVGABaXhdw5zwq5HcZmwzILvaZkecncrXJYD0WSWKC7D6qOsbW93Bl8foFiYY5YPxzgO5ij90mUUm9w2UG9oi9Nj37F+kHHbHUEegCzUzBLy3FpdJri3UiUJHN3LTy80gu2R6cL+BN0R0lOZzqZdfGfuW5nfKIX7eJxV3xWFMguUFHaiNEJZTZB2A0KB8foIdBAoY4g==",
-    "expiration": "2026-05-15T02:13:12.000Z"
+    "access_key_id": "ASIAZV3A2ECZFTNV5TXX",
+    "secret_access_key": "VVnT2r7CA4mV+JGiu2JiTLPg9i0ZNeAUUx+Gq8cx",
+    "session_token": "IQoJb3JpZ2luX2VjEPf//////////wEaCXVzLWVhc3QtMSJHMEUCIQCxjeBXbj5rTbk/qhzl073yLH1E/JuEa4TdX5r4AMAjAwIgFCXdk3mSPlk2vemrckOQGsA4t7FHmBkgZrNAapzCcT8q/wMIv///////////ARAEGgw2NjUzODYwOTg4NjYiDMUTnwcBRXY+I8kIPCrTA2ZVzPFmZtL5prlRc0c//K+jvUddI4U8Dw72INUz4QkPGzBjJXcuQYOQeWzwuSEsgChrAl57tGD2I/TYnIxbSh58Hd4qzLDgrTIXLeZKsJpUQY/nBGBebhV/bPU27po80IEKs/Lmkieq/JyM1Op1q98shiKZ38XwpGHsVIvxKglgyUOpgj3Tj+0wTYLcJG6zrHtb8sYuAf+JUlL2oKMMAPt/+jgOLJdnHys1QKmoEXwUtV9Ex6HHz9SW8v/LeawcpsAAei2CYAmJ3AXzDDl6N13BSqrEOqct9eVIHU/1nmgb7ix9kFgRdH6wN519Uhag3D3UHkEtL3T35YqJJeecf4gc2l/epsNCiBhet2wmefxaYMJCIh5fVMl72oLVL25vZp754AZGIp16pfpPMsKLdYwl00WPiSOVW6aTJ86fOp5av9Bao4TqHOUDrSw4phZ/zTTsY786x5v20Ao2EKuRLd4BXEe3wcnTsQjQm3hExq7JW0mfeZttKGVm9dLwI91OKyRPLEGVO5cRH/xhml55x+wHM2hJmZ4cZLvE8dKYZ66v5cK9s1cxWI/OKKDZXiE5Lbhv6CbDdFUsweiCUVn6QJw9IOrjuJjS2fb01MX4+3Nkr8HDMMvArNAGOp0BaEZCQBJWcQTCyrifc1FWoIkxZbZUHDp6GRrbtGwae/eGZ7lymkZ9kqmF6VQPydKBXrJ45/5PZMIzcXZpB+J7+os0V4tQyZREHVNDGcW1BNTosulZ9tCr7Rm5Q1RJHES+DbtluNA4KD2zuc+A55cZ4amnxK3D2ksRsa12xDKUlABk488a/2cy9+mv8eWtFGoi5J+0nmP//S/UEkBNLg==",
+    "expiration": "2026-05-19T02:20:59.000Z"
   },
   "name": "sofifa-scraper-web",
   "path": "/home/ubuntu/sofifa-scraper-web",
@@ -29,7 +30,7 @@
     "OAUTH_SERVER_URL": "https://api.manus.im",
     "OWNER_NAME": "Diego Raffaeli filial",
     "OWNER_OPEN_ID": "XE5x8E7cZZLXRmDo5uMPbB",
-    "SCRAPER_API_KEY": "d3ed6c5c7e98f3a8a2fa3b06fa61234a",
+    "SCRAPER_API_KEY": "8e6655aedf69b0dbf991faead8a59508",
     "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
     "VITE_ANALYTICS_WEBSITE_ID": "6df6c692-9b37-4c5a-9c44-f57a268a3679",
     "VITE_APP_ID": "8CJCojCuYgeUWowiuwpcH4",

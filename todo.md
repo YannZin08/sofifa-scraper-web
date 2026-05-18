@@ -138,3 +138,10 @@
 - [x] Corrigir erro "Unexpected token '<', "<!DOCTYPE"" na extração
   - Causa: Resposta HTML em vez de JSON
   - Solução: Adicionar tratamento de erro e melhorar validação de resposta
+
+
+## Bugs Encontrados (Sprint 7)
+
+- [x] Erro HTTP 524 (timeout) na extração em lote de 15 páginas
+  - Causa: Requisição demorando muito para processar
+  - Solução: Implementar streaming ou aumentar timeout

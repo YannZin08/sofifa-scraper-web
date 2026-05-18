@@ -105,26 +105,96 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const result = (await extractBatchMutation.mutateAsync({
-        baseUrl: url,
-        startOffset: finalStartOffset,
-        endOffset: finalEndOffset,
-        step: 60,
-      })) as ScraperResult;
+      // Usar streaming SSE para extrações grandes (mais de 600 offsets ou todas as páginas)
+      if (extractAllPages || (finalEndOffset - finalStartOffset) > 600) {
+        await handleExtractBatchStream(url, finalStartOffset, finalEndOffset);
+      } else {
+        // Para extrações pequenas, usar tRPC normal
+        const result = (await extractBatchMutation.mutateAsync({
+          baseUrl: url,
+          startOffset: finalStartOffset,
+          endOffset: finalEndOffset,
+          step: 60,
+        })) as ScraperResult;
 
-      if (!result.success) {
-        setError(result.error || "Erro desconhecido ao extrair dados em lote");
-        return;
+        if (!result.success) {
+          setError(result.error || "Erro desconhecido ao extrair dados em lote");
+          return;
+        }
+
+        setPlayers(result.players || []);
+        toast.success(`${result.count || result.players?.length || 0} jogadores extraídos com sucesso!`);
       }
-
-      setPlayers(result.players || []);
-      toast.success(`${result.count || result.players?.length || 0} jogadores extraídos com sucesso!`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados em lote";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleExtractBatchStream = async (baseUrl: string, startOffset: number, endOffset: number) => {
+    try {
+      const response = await fetch('/api/scraper/extract-batch-stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          baseUrl,
+          startOffset,
+          endOffset,
+          step: 60,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('Não foi possível ler a resposta');
+
+      const decoder = new TextDecoder();
+      let allPlayers: Player[] = [];
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines[lines.length - 1];
+
+        for (let i = 0; i < lines.length - 1; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.substring(6));
+              
+              if (data.type === 'progress') {
+                allPlayers = [...allPlayers, ...data.players];
+                setPlayers(allPlayers);
+                toast.loading(`Processando... ${data.progress}/${data.total} jogadores`);
+              } else if (data.type === 'complete') {
+                setPlayers(allPlayers);
+                toast.success(`${data.count} jogadores extraídos com sucesso!`);
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
+              }
+            } catch (parseErr) {
+              console.error('Erro ao processar evento SSE:', parseErr);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao extrair dados em lote';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
     }
   };
 

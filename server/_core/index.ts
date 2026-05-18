@@ -60,6 +60,10 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
+  // Aumentar timeout para requisições longas (extração em lote)
+  server.setTimeout(600000); // 10 minutos
+  server.keepAliveTimeout = 65000;
+  
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });

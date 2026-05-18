@@ -40,6 +40,17 @@ function translatePosition(position: string): string {
   return POSITION_TRANSLATIONS[position] || position;
 }
 
+// Função para extrair apenas o valor numérico de overall/potencial (remove +/- e sufixos)
+function extractNumericValue(value: string): number | string {
+  if (!value) return value;
+  // Remove tudo após o primeiro hífen ou mais (ex: "78-1" → "78", "83+2" → "83")
+  const match = value.match(/^(\d+)/);
+  if (match) {
+    return Number(match[1]);
+  }
+  return isNaN(Number(value)) ? value : Number(value);
+}
+
 // Mapeamento de países do inglês para português
 const COUNTRY_TRANSLATIONS: Record<string, string> = {
   'Afghanistan': 'Afeganistão',
@@ -547,8 +558,8 @@ function extractPlayers(html: string): Player[] {
           players.push({
             nome,
             idade: isNaN(Number(idade)) ? idade : Number(idade),
-            overall: isNaN(Number(overall)) ? overall : Number(overall),
-            potencial: isNaN(Number(potencial)) ? potencial : Number(potencial),
+            overall: extractNumericValue(overall),
+            potencial: extractNumericValue(potencial),
             time,
             liga,
             posicoes,

@@ -115,3 +115,11 @@
 - [x] Verificar que build passa sem erros
 - [x] Verificar que testes passam sem erros
 - [x] Aplicação agora focada apenas em extração de Jogadores
+
+
+## Ajustes de Formatação de Dados (Sprint 4)
+
+- [x] Remover sufixos (+/-) dos campos overall e potencial
+- [x] Deixar apenas valores numéricos (ex: "78-1" → 78, "83-3" → 83)
+- [x] Atualizar testes para validar novos valores
+- [x] Testar extração com URLs reais

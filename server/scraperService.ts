@@ -501,22 +501,36 @@ function extractPlayers(html: string): Player[] {
         const nomeLink = $td1.find('a[href*="/player/"]').first();
         const nome = nomeLink.text().trim() || '';
         
-        // Extrair posicoes do texto de TD[1] (aparecem após o nome)
-        const td1Text = $td1.text().trim();
+        // Extrair posicoes usando seletores CSS (mais confiável)
         const posicoes: string[] = [];
         
-        // Dividir o texto para pegar posições (aparecem após o nome)
-        const lines = td1Text.split('\n').filter(l => l.trim().length > 0);
-        if (lines.length > 1) {
-          // Primeira linha é o nome, resto são posições
-          for (let i = 1; i < lines.length; i++) {
-            const posText = lines[i].trim();
-            // Filtrar apenas posicoes validas (2-4 caracteres)
-            if (posText && posText.length >= 2 && posText.length <= 4 && /^[A-Z]+$/.test(posText)) {
-              const translated = translatePosition(posText);
-              // Evitar duplicatas
-              if (!posicoes.includes(translated)) {
-                posicoes.push(translated);
+        // Método 1: Extrair de span.pos (mais confiável)
+        $td1.find('span.pos').each((_, span) => {
+          const posText = $(span).text().trim();
+          if (posText && posText.length >= 2 && posText.length <= 4 && /^[A-Z]+$/.test(posText)) {
+            const translated = translatePosition(posText);
+            // Evitar duplicatas
+            if (!posicoes.includes(translated)) {
+              posicoes.push(translated);
+            }
+          }
+        });
+        
+        // Método 2: Fallback - extrair do texto se método 1 não encontrou nada
+        if (posicoes.length === 0) {
+          const td1Text = $td1.text().trim();
+          const lines = td1Text.split('\n').filter(l => l.trim().length > 0);
+          if (lines.length > 1) {
+            // Primeira linha é o nome, resto são posições
+            for (let i = 1; i < lines.length; i++) {
+              const posText = lines[i].trim();
+              // Filtrar apenas posicoes validas (2-4 caracteres)
+              if (posText && posText.length >= 2 && posText.length <= 4 && /^[A-Z]+$/.test(posText)) {
+                const translated = translatePosition(posText);
+                // Evitar duplicatas
+                if (!posicoes.includes(translated)) {
+                  posicoes.push(translated);
+                }
               }
             }
           }
@@ -693,9 +707,10 @@ export async function scrapeSofifaPlayersBatch(baseUrl: string, startOffset: num
           }
         }
 
-        // Delay entre requisições para não sobrecarregar
+        // Delay entre requisições para não sobrecarregar (reduzido para velocidade)
         if (i < offsets.length - 1) {
-          await randomDelay(1000, 3000);
+          // Delay menor: 300-800ms (ScraperAPI já faz rate limiting)
+          await randomDelay(300, 800);
         }
       } catch (pageError) {
         const errorMessage = pageError instanceof Error ? pageError.message : 'Erro desconhecido';

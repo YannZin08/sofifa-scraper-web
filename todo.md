@@ -145,3 +145,11 @@
 - [x] Erro HTTP 524 (timeout) na extração em lote de 15 páginas
   - Causa: Requisição demorando muito para processar
   - Solução: Implementar streaming ou aumentar timeout
+
+
+## Melhorias de Extração (Sprint 8)
+
+- [x] Corrigir extração de posições faltando (ex: W. Pacho sem posição)
+- [x] Otimizar velocidade reduzindo delays entre requisições
+- [x] Melhorar lógica de parsing de posições
+- [x] Testar com diferentes jogadores e ligas

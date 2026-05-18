@@ -131,3 +131,10 @@
 - [x] Implementar lógica para extrair automaticamente 0-1200 offsets
 - [x] Atualizar testes para validar extração completa
 - [x] Testar com URLs reais
+
+
+## Bugs Encontrados (Sprint 6)
+
+- [x] Corrigir erro "Unexpected token '<', "<!DOCTYPE"" na extração
+  - Causa: Resposta HTML em vez de JSON
+  - Solução: Adicionar tratamento de erro e melhorar validação de resposta

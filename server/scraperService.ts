@@ -248,6 +248,151 @@ const COUNTRY_TRANSLATIONS: Record<string, string> = {
   'Yemen': 'Iêmen',
   'Zambia': 'Zâmbia',
   'Zimbabwe': 'Zimbábue',
+  
+  // Espanhol
+  'Afganistán': 'Afeganistão', 'Argelia': 'Argélia', 'Antigua y Barbuda': 'Antígua e Barbuda', 'Armenia': 'Armênia',
+  'Azerbaiyán': 'Azerbaijão', 'Baréin': 'Bahrein', 'Bielorrusia': 'Bielorrússia', 'Belice': 'Belize',
+  'Benín': 'Benin', 'Bermudas': 'Bermudas', 'Bután': 'Butão', 'Bolivia': 'Bolívia', 'Bosnia y Herzegovina': 'Bósnia e Herzegovina',
+  'Bulgaria': 'Bulgária', 'Camerún': 'Camarões', 'Canadá': 'Canadá', 'Cabo Verde': 'Cabo Verde', 'República Centroafricana': 'República Centro-Africana',
+  'Chile': 'Chile', 'China': 'China', 'Colombia': 'Colômbia', 'Comoras': 'Comores', 'Congo': 'Congo',
+  'Costa Rica': 'Costa Rica', 'Croacia': 'Croácia', 'Cuba': 'Cuba', 'Chipre': 'Chipre', 'República Checa': 'República Tcheca',
+  'Dinamarca': 'Dinamarca', 'Yibuti': 'Djibuti', 'Dominica': 'Dominica', 'República Dominicana': 'República Dominicana',
+  'Ecuador': 'Equador', 'Egipto': 'Egito', 'El Salvador': 'El Salvador', 'Inglaterra': 'Inglaterra', 'Guinea Ecuatorial': 'Guiné Equatorial',
+  'Eritrea': 'Eritreia', 'Estonia': 'Estônia', 'Etiopía': 'Etiópia', 'Fiji': 'Fiji', 'Finlandia': 'Finlândia',
+  'Francia': 'França', 'Gabón': 'Gabão', 'Gambia': 'Gâmbia', 'Georgia': 'Geórgia', 'Alemania': 'Alemanha',
+  'Ghana': 'Gana', 'Grecia': 'Grécia', 'Granada': 'Granada', 'Guatemala': 'Guatemala', 'Guinea': 'Guiné',
+  'Guinea-Bisáu': 'Guiné-Bissau', 'Guyana': 'Guiana', 'Haití': 'Haiti', 'Honduras': 'Honduras', 'Hong Kong': 'Hong Kong',
+  'Hungría': 'Hungria', 'Islandia': 'Islândia', 'India': 'Índia', 'Indonesia': 'Indonésia', 'Irán': 'Irã',
+  'Irak': 'Iraque', 'Irlanda': 'Irlanda', 'Israel': 'Israel', 'Italia': 'Itália', 'Costa de Marfil': 'Costa do Marfim',
+  'Jamaica': 'Jamaica', 'Japón': 'Japão', 'Jordania': 'Jordânia', 'Kazajistán': 'Cazaquistão', 'Kenia': 'Quênia',
+  'Corea': 'Coreia', 'Corea del Norte': 'Coreia do Norte', 'Corea del Sur': 'Coreia do Sul', 'Kosovo': 'Kosovo',
+  'Kuwait': 'Kuwait', 'Kirguistán': 'Quirguistão', 'Laos': 'Laos', 'Letonia': 'Letônia', 'Líbano': 'Líbano',
+  'Lesoto': 'Lesoto', 'Liberia': 'Libéria', 'Libia': 'Líbia', 'Liechtenstein': 'Liechtenstein', 'Lituania': 'Lituânia',
+  'Luxemburgo': 'Luxemburgo', 'Macao': 'Macau', 'Madagascar': 'Madagascar', 'Malaui': 'Malaui', 'Malasia': 'Malásia',
+  'Maldivas': 'Maldivas', 'Mali': 'Mali', 'Malta': 'Malta', 'Mauritania': 'Mauritânia', 'Mauricio': 'Maurício',
+  'México': 'México', 'Moldavia': 'Moldávia', 'Mónaco': 'Mônaco', 'Mongolia': 'Mongólia', 'Montenegro': 'Montenegro',
+  'Marruecos': 'Marrocos', 'Mozambique': 'Moçambique', 'Myanmar': 'Mianmar', 'Namibia': 'Namíbia', 'Nepal': 'Nepal',
+  'Paises Bajos': 'Holanda', 'Nueva Zelanda': 'Nova Zelândia', 'Nicaragua': 'Nicarágua', 'Níger': 'Níger',
+  'Nigeria': 'Nigéria', 'Irlanda del Norte': 'Irlanda do Norte', 'Noruega': 'Noruega', 'Omán': 'Omã',
+  'Pakistán': 'Paquistão', 'Palestina': 'Palestina', 'Panamá': 'Panamá', 'Papúa Nueva Guinea': 'Papua Nova Guiné',
+  'Paraguay': 'Paraguai', 'Perú': 'Peru', 'Filipinas': 'Filipinas', 'Polonia': 'Polônia', 'Portugal': 'Portugal',
+  'Catar': 'Catar', 'Rumania': 'Romênia', 'Rusia': 'Rússia', 'Ruanda': 'Ruanda', 'San Cristóbal y Nieves': 'São Cristóvão e Névis',
+  'Santa Lucia': 'Santa Lúcia', 'San Vicente y las Granadinas': 'São Vicente e Granadinas', 'Samoa': 'Samoa',
+  'San Marino': 'San Marino', 'Santo Tomé y Príncipe': 'São Tomé e Príncipe', 'Arabia Saudita': 'Arábia Saudita',
+  'Escocia': 'Escócia', 'Senegal': 'Senegal', 'Serbia': 'Sérvia', 'Seychelles': 'Seicheles', 'Sierra Leona': 'Serra Leoa',
+  'Singapur': 'Singapura', 'Eslovaquia': 'Eslováquia', 'Eslovenia': 'Eslovênia', 'Islas Salomón': 'Ilhas Salomão',
+  'Somalia': 'Somália', 'Sudáfrica': 'África do Sul', 'Sudán del Sur': 'Sudão do Sul', 'España': 'Espanha',
+  'Sri Lanka': 'Sri Lanka', 'Sudán': 'Sudão', 'Surinam': 'Surinã', 'Esuatini': 'Eswatíni', 'Suecia': 'Suécia',
+  'Suiza': 'Suíça', 'Siria': 'Síria', 'Taiwán': 'Taiwan', 'Tayikistán': 'Tajiquistão', 'Tanzania': 'Tanzânia',
+  'Tailandia': 'Tailândia', 'Timor Oriental': 'Timor-Leste', 'Togo': 'Togo', 'Tonga': 'Tonga',
+  'Trinidad y Tobago': 'Trinidad e Tobago', 'Túnez': 'Tunísia', 'Turquía': 'Turquia', 'Turkmenistán': 'Turcomenistão',
+  'Uganda': 'Uganda', 'Ucrania': 'Ucrânia', 'Emiratos Árabes Unidos': 'Emirados Árabes Unidos', 'Estados Unidos': 'Estados Unidos',
+  'Uruguay': 'Uruguai', 'Uzbekistán': 'Uzbequistão', 'Vanuatu': 'Vanuatu', 'Venezuela': 'Venezuela', 'Vietnam': 'Vietnã',
+  'Gales': 'País de Gales', 'Yemen': 'Iêmen', 'Zambia': 'Zâmbia', 'Zimbabue': 'Zimbábue',
+  
+  // Francês
+  'Albanie': 'Albânia', 'Algérie': 'Argélia', 'Andorre': 'Andorra', 'Antigua-et-Barbuda': 'Antígua e Barbuda',
+  'Argentine': 'Argentina', 'Arménie': 'Armênia', 'Australie': 'Austrália', 'Autriche': 'Áustria',
+  'Azerbaïdjan': 'Azerbaijão', 'Bahamas': 'Bahamas', 'Bahreïn': 'Bahrein', 'Bangladesh': 'Bangladesh',
+  'Barbade': 'Barbados', 'Biélorussie': 'Bielorrússia', 'Belgique': 'Bélgica', 'Belize': 'Belize',
+  'Bénin': 'Benin', 'Bermudes': 'Bermudas', 'Bhoutan': 'Butão', 'Birmanie': 'Mianmar', 'Bolivie': 'Bolívia',
+  'Bosnie-Herzégovine': 'Bósnia e Herzegovina', 'Botswana': 'Botsuana', 'Brésil': 'Brasil', 'Brunei': 'Brunei',
+  'Bulgarie': 'Bulgária', 'Burkina': 'Burkina Faso', 'Burundi': 'Burundi', 'Cambodge': 'Camboja',
+  'Cameroun': 'Camarões', 'Canada': 'Canadá', 'Cap-Vert': 'Cabo Verde', 'République Centrafricaine': 'República Centro-Africana',
+  'Tchad': 'Chade', 'Chili': 'Chile', 'Chine': 'China', 'Chypre': 'Chipre', 'Colombie': 'Colômbia',
+  'Comores': 'Comores', 'Congo': 'Congo', 'Corée': 'Coreia', 'Corée du Nord': 'Coreia do Norte', 'Corée du Sud': 'Coreia do Sul',
+  'Costa Rica': 'Costa Rica', 'Côte d\'Ivoire': 'Costa do Marfim', 'Croatie': 'Croácia', 'Cuba': 'Cuba',
+  'Danemark': 'Dinamarca', 'Djibouti': 'Djibuti', 'Dominique': 'Dominica', 'Égypte': 'Egito',
+  'Émirats Arabes Unis': 'Emirados Árabes Unidos', 'Équateur': 'Equador', 'Érythrée': 'Eritreia',
+  'Espagne': 'Espanha', 'Estonie': 'Estônia', 'États-Unis': 'Estados Unidos', 'Éthiopie': 'Etiópia',
+  'Fidji': 'Fiji', 'Finlande': 'Finlândia', 'France': 'França', 'Gabon': 'Gabão', 'Gambie': 'Gâmbia',
+  'Géorgie': 'Geórgia', 'Ghana': 'Gana', 'Gibraltar': 'Gibraltar', 'Grèce': 'Grécia', 'Grenade': 'Granada',
+  'Groenland': 'Groenlândia', 'Guadeloupe': 'Guadalupe', 'Guam': 'Guam', 'Guatemala': 'Guatemala',
+  'Guernesey': 'Guernsey', 'Guinée': 'Guiné', 'Guinée équatoriale': 'Guiné Equatorial', 'Guinée-Bissau': 'Guiné-Bissau',
+  'Guyana': 'Guiana', 'Guyane française': 'Guiana Francesa', 'Haïti': 'Haiti', 'Honduras': 'Honduras',
+  'Hong Kong': 'Hong Kong', 'Hongrie': 'Hungria', 'Inde': 'Índia', 'Indonésie': 'Indonésia', 'Irak': 'Iraque',
+  'Iran': 'Irã', 'Irlande': 'Irlanda', 'Irlande du Nord': 'Irlanda do Norte', 'Islande': 'Islândia',
+  'Israël': 'Israel', 'Italie': 'Itália', 'Jamaïque': 'Jamaica', 'Japon': 'Japão', 'Jersey': 'Jersey',
+  'Jordanie': 'Jordânia', 'Kazakhstan': 'Cazaquistão', 'Kenya': 'Quênia', 'Kirghizistan': 'Quirguistão',
+  'Kiribati': 'Kiribati', 'Kosovo': 'Kosovo', 'Koweït': 'Kuwait', 'Laos': 'Laos', 'Lesotho': 'Lesoto',
+  'Lettonie': 'Letônia', 'Liban': 'Líbano', 'Liberia': 'Libéria', 'Libye': 'Líbia', 'Liechtenstein': 'Liechtenstein',
+  'Lituanie': 'Lituânia', 'Luxembourg': 'Luxemburgo', 'Macao': 'Macau', 'Macédoine': 'Macedônia',
+  'Madagascar': 'Madagascar', 'Malaisie': 'Malásia', 'Malawi': 'Malaui', 'Maldives': 'Maldivas',
+  'Mali': 'Mali', 'Malte': 'Malta', 'Maroc': 'Marrocos', 'Martinique': 'Martinica', 'Mauritanie': 'Mauritânia',
+  'Maurice': 'Maurício', 'Mayotte': 'Maiote', 'Mexique': 'México', 'Micronésie': 'Micronésia',
+  'Moldavie': 'Moldávia', 'Monaco': 'Mônaco', 'Mongolie': 'Mongólia', 'Monténégro': 'Montenegro',
+  'Montserrat': 'Montserrat', 'Mozambique': 'Moçambique', 'Namibie': 'Namíbia', 'Nauru': 'Nauru',
+  'Népal': 'Nepal', 'Nicaragua': 'Nicarágua', 'Niger': 'Níger', 'Nigeria': 'Nigéria', 'Niue': 'Niue',
+  'Norvège': 'Noruega', 'Nouvelle-Calédonie': 'Nova Caledônia', 'Nouvelle-Zélande': 'Nova Zelândia',
+  'Oman': 'Omã', 'Ouganda': 'Uganda', 'Ouzbékistan': 'Uzbequistão', 'Pakistan': 'Paquistão', 'Palaos': 'Palau',
+  'Palestine': 'Palestina', 'Panama': 'Panamá', 'Papouasie-Nouvelle-Guinée': 'Papua Nova Guiné', 'Paraguay': 'Paraguai',
+  'Pays-Bas': 'Holanda', 'Pérou': 'Peru', 'Philippines': 'Filipinas', 'Pologne': 'Polônia',
+  'Polynésie française': 'Polinésia Francesa', 'Porto Rico': 'Porto Rico', 'Portugal': 'Portugal', 'Qatar': 'Catar',
+  'La Réunion': 'Reunião', 'Roumanie': 'Romênia', 'Royaume-Uni': 'Reino Unido', 'Russie': 'Rússia',
+  'Rwanda': 'Ruanda', 'Sahara occidental': 'Saara Ocidental', 'Saint-Barthélemy': 'São Bartolomeu',
+  'Saint-Marin': 'San Marino', 'Saint-Martin': 'São Martinho', 'Saint-Pierre-et-Miquelon': 'Saint-Pierre e Miquelon',
+  'Saint-Vincent-et-les-Grenadines': 'São Vicente e Granadinas', 'Sainte-Hélène': 'Santa Helena',
+  'Sainte-Lucie': 'Santa Lúcia', 'Samoa': 'Samoa', 'Samoa américaines': 'Samoa Americana',
+  'Sao Tomé-et-Principe': 'São Tomé e Príncipe', 'Sénégal': 'Senegal', 'Serbie': 'Sérvia',
+  'Seychelles': 'Seicheles', 'Sierra Leone': 'Serra Leoa', 'Singapour': 'Singapura', 'Sint Maarten': 'Sint Maarten',
+  'Slovaquie': 'Eslováquia', 'Slovénie': 'Eslovênia', 'Somalie': 'Somália', 'Soudan': 'Sudão',
+  'Soudan du Sud': 'Sudão do Sul', 'Sri Lanka': 'Sri Lanka', 'Suède': 'Suécia', 'Suisse': 'Suíça',
+  'Suriname': 'Surinã', 'Swaziland': 'Eswatíni', 'Syrie': 'Síria', 'Tadjikistan': 'Tajiquistão',
+  'Taïwan': 'Taiwan', 'Tanzanie': 'Tanzânia', 'Tchéquie': 'República Tcheca', 'Thaïlande': 'Tailândia',
+  'Timor oriental': 'Timor-Leste', 'Togo': 'Togo', 'Tokelau': 'Toquelau', 'Tonga': 'Tonga',
+  'Trinité-et-Tobago': 'Trinidad e Tobago', 'Tunisie': 'Tunísia', 'Turkménistan': 'Turcomenistão',
+  'Turquie': 'Turquia', 'Tuvalu': 'Tuvalu', 'Ukraine': 'Ucrânia', 'Uruguay': 'Uruguai',
+  'Vanuatu': 'Vanuatu', 'Vatican': 'Vaticano', 'Venezuela': 'Venezuela', 'Viêt Nam': 'Vietnã',
+  'Wallis-et-Futuna': 'Wallis e Futuna', 'Yémen': 'Iêmen', 'Zambie': 'Zâmbia', 'Zimbabwe': 'Zimbábue',
+  
+  // Polonês
+  'Afganistan': 'Afeganistão', 'Albania': 'Albânia', 'Algieria': 'Argélia', 'Andora': 'Andorra', 'Angola': 'Angola',
+  'Antigua i Barbuda': 'Antígua e Barbuda', 'Arabia Saudyjska': 'Arábia Saudita', 'Argentyna': 'Argentina', 'Armenia': 'Armênia',
+  'Aruba': 'Aruba', 'Australia': 'Austrália', 'Austria': 'Áustria', 'Azerbejdżan': 'Azerbaijão', 'Bahamy': 'Bahamas',
+  'Bahrajn': 'Bahrein', 'Bangladesz': 'Bangladesh', 'Barbados': 'Barbados', 'Białoruś': 'Bielorrússia', 'Belgia': 'Bélgica',
+  'Belize': 'Belize', 'Benin': 'Benin', 'Bermudy': 'Bermudas', 'Bhutan': 'Butão', 'Białoruś': 'Bielorrússia',
+  'Birma': 'Mianmar', 'Boliwia': 'Bolívia', 'Bośnia i Hercegowina': 'Bósnia e Herzegovina', 'Botswana': 'Botsuana',
+  'Brazylia': 'Brasil', 'Brunei': 'Brunei', 'Bułgaria': 'Bulgária', 'Burkina Faso': 'Burkina Faso', 'Burundi': 'Burundi',
+  'Cambodża': 'Camboja', 'Kamerun': 'Camarões', 'Kanada': 'Canadá', 'Wyspy Zielonego Przylądka': 'Cabo Verde',
+  'Republika Środkowoafrykańska': 'República Centro-Africana', 'Czad': 'Chade', 'Chile': 'Chile', 'Chıny': 'China',
+  'Cypr': 'Chipre', 'Kolumbia': 'Colômbia', 'Komory': 'Comores', 'Kongo': 'Congo', 'Korea Płn.': 'Coreia do Norte',
+  'Korea Płd.': 'Coreia do Sul', 'Kostaryka': 'Costa Rica', 'Wybrzeze Słoniowca': 'Costa do Marfim', 'Chorwacja': 'Croácia',
+  'Kuba': 'Cuba', 'Dąnija': 'Dinamarca', 'Djibouti': 'Djibuti', 'Dominika': 'Dominica', 'Dominikana': 'República Dominicana',
+  'Ekwador': 'Equador', 'Egipt': 'Egito', 'Salwador': 'El Salvador', 'Anglia': 'Inglaterra', 'Gwinea Równikowa': 'Guiné Equatorial',
+  'Erytrea': 'Eritreia', 'Estonia': 'Estônia', 'Etiopia': 'Etiópia', 'Fidży': 'Fiji', 'Finlandia': 'Finlândia',
+  'Francja': 'França', 'Gabon': 'Gabão', 'Gambia': 'Gâmbia', 'Gruzja': 'Geórgia', 'Niemcy': 'Alemanha',
+  'Ghana': 'Gana', 'Grecja': 'Grécia', 'Grenada': 'Granada', 'Gwadelupa': 'Guadalupe', 'Guam': 'Guam',
+  'Gwatemala': 'Guatemala', 'Guernsey': 'Guernsey', 'Gwinea': 'Guiné', 'Gwinea Bissau': 'Guiné-Bissau', 'Gwinea Równikowa': 'Guiné Equatorial',
+  'Gujana': 'Guiana', 'Gujana Francuska': 'Guiana Francesa', 'Haiti': 'Haiti', 'Honduras': 'Honduras', 'Hong Kong': 'Hong Kong',
+  'Węgry': 'Hungria', 'Islandia': 'Islândia', 'Indie': 'Índia', 'Indonezja': 'Indonésia', 'Iran': 'Irã',
+  'Irak': 'Iraque', 'Irlandia': 'Irlanda', 'Irlandia Północna': 'Irlanda do Norte', 'Izrael': 'Israel', 'Włochy': 'Itália',
+  'Jamajka': 'Jamaica', 'Japonia': 'Japão', 'Jersey': 'Jersey', 'Jordania': 'Jordânia', 'Kazachstan': 'Cazaquistão',
+  'Kenia': 'Quênia', 'Kirgistan': 'Quirguistão', 'Kiribati': 'Kiribati', 'Kosovo': 'Kosovo', 'Kuwejt': 'Kuwait',
+  'Laos': 'Laos', 'Lesoto': 'Lesoto', 'Litwa': 'Lituânia', 'Liban': 'Líbano', 'Liberia': 'Libéria',
+  'Libia': 'Líbia', 'Liechtenstein': 'Liechtenstein', 'Luksemburg': 'Luxemburgo', 'Makao': 'Macau', 'Madagaskar': 'Madagascar',
+  'Malawi': 'Malaui', 'Malezja': 'Malásia', 'Maledywy': 'Maldivas', 'Mali': 'Mali', 'Malta': 'Malta',
+  'Maroko': 'Marrocos', 'Martynika': 'Martinica', 'Mauretania': 'Mauritânia', 'Mauritius': 'Maurício', 'Majotta': 'Maiote',
+  'Meksyk': 'México', 'Mikronezja': 'Micronésia', 'Mołdawia': 'Moldávia', 'Monako': 'Mônaco', 'Mongolia': 'Mongólia',
+  'Czarnogora': 'Montenegro', 'Montserrat': 'Montserrat', 'Mozambik': 'Moçambique', 'Namibia': 'Namíbia', 'Nauru': 'Nauru',
+  'Nepal': 'Nepal', 'Nikaraqua': 'Nicarágua', 'Niger': 'Níger', 'Nigeria': 'Nigéria', 'Niue': 'Niue',
+  'Norwegia': 'Noruega', 'Nowa Kaledonia': 'Nova Caledônia', 'Nowa Zelandia': 'Nova Zelândia', 'Oman': 'Omã',
+  'Pakistan': 'Paquistão', 'Palau': 'Palau', 'Palestyna': 'Palestina', 'Panama': 'Panamá', 'Papua Nowa Gwinea': 'Papua Nova Guiné',
+  'Paragwaj': 'Paraguai', 'Peru': 'Peru', 'Filipiny': 'Filipinas', 'Polska': 'Polônia', 'Polinezja Francuska': 'Polinésia Francesa',
+  'Portoryko': 'Porto Rico', 'Portugalia': 'Portugal', 'Katar': 'Catar', 'Reunion': 'Reunião', 'Rumunia': 'Romênia',
+  'Rosja': 'Rússia', 'Ruanda': 'Ruanda', 'Sahara Zachodnia': 'Saara Ocidental', 'Saint Barthelemy': 'São Bartolomeu',
+  'Saint Martin': 'São Martinho', 'Saint Pierre i Miquelon': 'Saint-Pierre e Miquelon', 'Saint Vincent i Grenadyny': 'São Vicente e Granadinas',
+  'Samoa': 'Samoa', 'Samoa Amerykańska': 'Samoa Americana', 'San Marino': 'San Marino', 'Sao Tome i Principe': 'São Tomé e Príncipe',
+  'Senegal': 'Senegal', 'Serbia': 'Sérvia', 'Seszele': 'Seicheles', 'Sierra Leone': 'Serra Leoa', 'Singapur': 'Singapura',
+  'Sint Maarten': 'Sint Maarten', 'Slowacja': 'Eslováquia', 'Slowenia': 'Eslovênia', 'Wyspy Salomona': 'Ilhas Salomão',
+  'Somalia': 'Somália', 'Poludniowa Afryka': 'África do Sul', 'Poludniowy Sudan': 'Sudão do Sul', 'Hiszpania': 'Espanha',
+  'Sri Lanka': 'Sri Lanka', 'Sudan': 'Sudão', 'Surinam': 'Surinã', 'Eswatini': 'Eswatíni', 'Szwecja': 'Suécia',
+  'Szwajcaria': 'Suíça', 'Syria': 'Síria', 'Tajwan': 'Taiwan', 'Tadżykistan': 'Tajiquistão', 'Tanzania': 'Tanzânia',
+  'Tajlandia': 'Tailândia', 'Timor Wschodni': 'Timor-Leste', 'Togo': 'Togo', 'Tokelau': 'Toquelau', 'Tonga': 'Tonga',
+  'Trynidad i Tobago': 'Trinidad e Tobago', 'Tunezja': 'Tunísia', 'Turkmenistan': 'Turcomenistão', 'Turcja': 'Turquia',
+  'Tuvalu': 'Tuvalu', 'Ukraina': 'Ucrânia', 'Uganada': 'Uganda', 'Zjednoczone Emiraty Arabskie': 'Emirados Árabes Unidos',
+  'Stany Zjednoczone': 'Estados Unidos', 'Urugwaj': 'Uruguai', 'Uzbekistan': 'Uzbequistão', 'Vanuatu': 'Vanuatu',
+  'Watykan': 'Vaticano', 'Wenezuela': 'Venezuela', 'Wietnam': 'Vietnã', 'Walia': 'País de Gales',
+  'Jemen': 'Iêmen', 'Zambia': 'Zâmbia', 'Zimbabwe': 'Zimbábue',
 };
 
 function translateCountry(country: string): string {
@@ -812,35 +957,20 @@ export async function downloadPlayerImages(players: Player[]): Promise<Buffer> {
 
 // Interface para times
 interface Team {
-  nome: string;
-  liga: string;
-  orcamento: string;
-  valorClube: string;
-  nacionalidade: string;
-  logo?: string;
-  bandeira?: string;
+  imagem?: string;           // URL da imagem/logo do time
+  nome: string;              // Nome do time
+  liga: string;              // Liga do time
+  orcamento: string;         // Orçamento de transferências
+  rival: string;             // Time rival
+  prestigioInternacional: string | number;  // Prestígio internacional
+  prestigioLocal: string | number;          // Prestígio local (doméstico)
+  estadio: string;           // Estádio
 }
 
 interface TeamResult {
   success: boolean;
   error: string | null;
   teams: Team[];
-  count?: number;
-}
-
-interface TeamDetails {
-  nome: string;
-  liga: string;
-  estadio: string;
-  rivalTime: string;
-  prestigioInternacional: string | number;
-  prestigioLocal: string | number;
-}
-
-interface TeamDetailsResult {
-  success: boolean;
-  error: string | null;
-  details: TeamDetails[];
   count?: number;
 }
 
@@ -1036,3 +1166,179 @@ function translateCountryCode(code: string): string {
 }
 
 // REMOVIDO: Funcionalidade de times foi removida
+
+// Função para extrair times de uma página HTML
+function extractTeams(html: string): Team[] {
+  const $ = load(html);
+  const teams: Team[] = [];
+
+  // Validar se é página de erro do Cloudflare
+  if (html.includes('Sorry, you have been blocked') || html.includes('Cloudflare')) {
+    console.error('[Cloudflare] Página bloqueada pelo Cloudflare');
+    throw new Error('SoFIFA está bloqueando requisições. Tente novamente em alguns minutos ou use ScraperAPI com créditos.');
+  }
+
+  try {
+    $('tbody tr').each((_, row) => {
+      try {
+        const $row = $(row);
+        const $cells = $row.find('td');
+
+        // Estrutura esperada da tabela de times:
+        // TD[0] - Ranking/Checkbox
+        // TD[1] - Logo/Imagem do time
+        // TD[2] - Nome do time
+        // TD[3] - Liga
+        // TD[4] - Orçamento de transferências
+        // TD[5] - Time rival
+        // TD[6] - Prestígio internacional
+        // TD[7] - Prestígio local
+        // TD[8] - Estádio
+
+        // Extrair imagem (logo do time)
+        const logoImg = $cells.eq(1).find('img');
+        const imagem = logoImg.attr('data-src') || logoImg.attr('src') || undefined;
+
+        // Extrair nome do time (via link)
+        const nomeLink = $cells.eq(2).find('a').first();
+        const nome = nomeLink.text().trim() || '';
+
+        // Extrair liga
+        const liga = $cells.eq(3).text().trim() || '';
+
+        // Extrair orçamento de transferências
+        const orcamento = $cells.eq(4).text().trim() || '';
+
+        // Extrair time rival
+        const rival = $cells.eq(5).text().trim() || '';
+
+        // Extrair prestígio internacional
+        const prestigioInternacional = $cells.eq(6).text().trim() || '';
+
+        // Extrair prestígio local
+        const prestigioLocal = $cells.eq(7).text().trim() || '';
+
+        // Extrair estádio
+        const estadio = $cells.eq(8).text().trim() || '';
+
+        if (nome && liga) {
+          teams.push({
+            imagem,
+            nome,
+            liga,
+            orcamento,
+            rival,
+            prestigioInternacional,
+            prestigioLocal,
+            estadio,
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao processar linha da tabela de times:', err);
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao extrair times:', err);
+  }
+
+  return teams;
+}
+
+export async function scrapeSofifaTeams(url: string): Promise<TeamResult> {
+  try {
+    if (!url || !url.includes('sofifa.com')) {
+      return {
+        success: false,
+        error: 'URL inválida. Certifique-se de que é uma URL do SoFIFA.',
+        teams: [],
+      };
+    }
+
+    console.log(`Iniciando scraping de times: ${url}`);
+
+    const html = await fetchPageWithRetry(url);
+
+    const teams = extractTeams(html);
+
+    if (teams.length === 0) {
+      return {
+        success: false,
+        error: 'Nenhum time encontrado. A página pode estar vazia ou a estrutura do SoFIFA pode ter mudado.',
+        teams: [],
+      };
+    }
+
+    return {
+      success: true,
+      error: null,
+      teams,
+      count: teams.length,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro no scraper de times:', errorMessage);
+
+    return {
+      success: false,
+      error: `Erro ao acessar página: ${errorMessage}`,
+      teams: [],
+    };
+  }
+}
+
+export async function downloadTeamImages(teams: Team[]): Promise<Buffer> {
+  try {
+    // Usar JSZip que é mais simples e não requer dependências externas
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    
+    // Criar pasta para imagens
+    const imagesFolder = zip.folder('imagens_times');
+    
+    if (!imagesFolder) {
+      throw new Error('Erro ao criar pasta no ZIP');
+    }
+    
+    // Download de cada imagem
+    for (const team of teams) {
+      if (team.imagem) {
+        try {
+          // Sanitizar nome do time para usar como nome de arquivo
+          const sanitizedName = team.nome
+            .replace(/[^a-zA-Z0-9\s]/g, '') // Remove caracteres especiais
+            .replace(/\s+/g, '_') // Substitui espaços por underscore
+            .toLowerCase();
+          
+          // Fazer download da imagem
+          const response = await axios.get(team.imagem, {
+            responseType: 'arraybuffer',
+            timeout: 10000,
+          });
+          
+          // Adicionar imagem ao ZIP com nome do time
+          const ext = team.imagem.includes('.png') ? 'png' : 'jpg';
+          imagesFolder.file(`${sanitizedName}.${ext}`, response.data);
+          
+          console.log(`✓ Imagem de ${team.nome} adicionada ao ZIP`);
+        } catch (imgError) {
+          const errorMessage = imgError instanceof Error ? imgError.message : 'Erro desconhecido';
+          console.warn(`⚠ Erro ao baixar imagem de ${team.nome}: ${errorMessage}`);
+          // Continuar com próximo time em caso de erro
+        }
+      }
+    }
+    
+    // Gerar buffer do ZIP
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' });
+    
+    if (!buffer) {
+      throw new Error('Erro ao gerar arquivo ZIP');
+    }
+    
+    return buffer;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro ao criar ZIP de imagens de times:', errorMessage);
+    throw error;
+  }
+}

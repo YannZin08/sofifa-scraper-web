@@ -1,0 +1,106 @@
+import fs from 'fs';
+
+const file = '/home/ubuntu/sofifa-scraper-web/server/scraperService.ts';
+let content = fs.readFileSync(file, 'utf-8');
+
+// Adicionar traduções de países em espanhol e francês ao mapeamento existente
+const additionalTranslations = `  // Espanhol
+  'Afganistán': 'Afeganistão', 'Argelia': 'Argélia', 'Antigua y Barbuda': 'Antígua e Barbuda',
+  'Armenia': 'Armênia', 'Azerbaiyán': 'Azerbaijão', 'Baréin': 'Bahrein', 'Bielorrusia': 'Bielorrússia',
+  'Belice': 'Belize', 'Benín': 'Benin', 'Bermudas': 'Bermudas', 'Bután': 'Butão', 'Bolivia': 'Bolívia',
+  'Bosnia y Herzegovina': 'Bósnia e Herzegovina', 'Botsuana': 'Botsuana', 'Brasil': 'Brasil', 'Bulgaria': 'Bulgária',
+  'Camerún': 'Camarões', 'Canadá': 'Canadá', 'Cabo Verde': 'Cabo Verde', 'República Centroafricana': 'República Centro-Africana',
+  'Chile': 'Chile', 'China': 'China', 'Colombia': 'Colômbia', 'Comoras': 'Comores', 'Congo': 'Congo',
+  'Costa Rica': 'Costa Rica', 'Croacia': 'Croácia', 'Cuba': 'Cuba', 'Chipre': 'Chipre', 'República Checa': 'República Tcheca',
+  'Dinamarca': 'Dinamarca', 'Yibuti': 'Djibuti', 'Dominica': 'Dominica', 'República Dominicana': 'República Dominicana',
+  'Ecuador': 'Equador', 'Egipto': 'Egito', 'El Salvador': 'El Salvador', 'Inglaterra': 'Inglaterra', 'Guinea Ecuatorial': 'Guiné Equatorial',
+  'Eritrea': 'Eritreia', 'Estonia': 'Estônia', 'Etiopía': 'Etiópia', 'Fiji': 'Fiji', 'Finlandia': 'Finlândia',
+  'Francia': 'França', 'Gabón': 'Gabão', 'Gambia': 'Gâmbia', 'Georgia': 'Geórgia', 'Alemania': 'Alemanha',
+  'Ghana': 'Gana', 'Grecia': 'Grécia', 'Granada': 'Granada', 'Guatemala': 'Guatemala', 'Guinea': 'Guiné',
+  'Guinea-Bisáu': 'Guiné-Bissau', 'Guyana': 'Guiana', 'Haití': 'Haiti', 'Honduras': 'Honduras', 'Hong Kong': 'Hong Kong',
+  'Hungría': 'Hungria', 'Islandia': 'Islândia', 'India': 'Índia', 'Indonesia': 'Indonésia', 'Irán': 'Irã',
+  'Irak': 'Iraque', 'Irlanda': 'Irlanda', 'Israel': 'Israel', 'Italia': 'Itália', 'Costa de Marfil': 'Costa do Marfim',
+  'Jamaica': 'Jamaica', 'Japón': 'Japão', 'Jordania': 'Jordânia', 'Kazajistán': 'Cazaquistão', 'Kenia': 'Quênia',
+  'Corea': 'Coreia', 'Corea del Norte': 'Coreia do Norte', 'Corea del Sur': 'Coreia do Sul', 'Kosovo': 'Kosovo', 'Kuwait': 'Kuwait',
+  'Kirguistán': 'Quirguistão', 'Laos': 'Laos', 'Letonia': 'Letônia', 'Líbano': 'Líbano', 'Lesoto': 'Lesoto',
+  'Liberia': 'Libéria', 'Libia': 'Líbia', 'Liechtenstein': 'Liechtenstein', 'Lituania': 'Lituânia', 'Luxemburgo': 'Luxemburgo',
+  'Macao': 'Macau', 'Madagascar': 'Madagascar', 'Malaui': 'Malaui', 'Malasia': 'Malásia', 'Maldivas': 'Maldivas',
+  'Mali': 'Mali', 'Malta': 'Malta', 'Mauritania': 'Mauritânia', 'Mauricio': 'Maurício', 'México': 'México',
+  'Moldavia': 'Moldávia', 'Mónaco': 'Mônaco', 'Mongolia': 'Mongólia', 'Montenegro': 'Montenegro', 'Marruecos': 'Marrocos',
+  'Mozambique': 'Moçambique', 'Myanmar': 'Mianmar', 'Namibia': 'Namíbia', 'Nepal': 'Nepal', 'Paises Bajos': 'Holanda',
+  'Nueva Zelanda': 'Nova Zelândia', 'Nicaragua': 'Nicarágua', 'Níger': 'Níger', 'Nigeria': 'Nigéria', 'Irlanda del Norte': 'Irlanda do Norte',
+  'Noruega': 'Noruega', 'Omán': 'Omã', 'Pakistán': 'Paquistão', 'Palestina': 'Palestina', 'Panamá': 'Panamá',
+  'Papúa Nueva Guinea': 'Papua Nova Guiné', 'Paraguay': 'Paraguai', 'Perú': 'Peru', 'Filipinas': 'Filipinas', 'Polonia': 'Polônia',
+  'Portugal': 'Portugal', 'Catar': 'Catar', 'Rumania': 'Romênia', 'Rusia': 'Rússia', 'Ruanda': 'Ruanda',
+  'San Cristóbal y Nieves': 'São Cristóvão e Névis', 'Santa Lucia': 'Santa Lúcia', 'San Vicente y las Granadinas': 'São Vicente e Granadinas',
+  'Samoa': 'Samoa', 'San Marino': 'San Marino', 'Santo Tomé y Príncipe': 'São Tomé e Príncipe', 'Arabia Saudita': 'Arábia Saudita',
+  'Escocia': 'Escócia', 'Senegal': 'Senegal', 'Serbia': 'Sérvia', 'Seychelles': 'Seicheles', 'Sierra Leona': 'Serra Leoa',
+  'Singapur': 'Singapura', 'Eslovaquia': 'Eslováquia', 'Eslovenia': 'Eslovênia', 'Islas Salomón': 'Ilhas Salomão', 'Somalia': 'Somália',
+  'Sudáfrica': 'África do Sul', 'Sudán del Sur': 'Sudão do Sul', 'España': 'Espanha', 'Sri Lanka': 'Sri Lanka', 'Sudán': 'Sudão',
+  'Surinam': 'Surinã', 'Esuatini': 'Eswatíni', 'Suecia': 'Suécia', 'Suiza': 'Suíça', 'Siria': 'Síria',
+  'Taiwán': 'Taiwan', 'Tayikistán': 'Tajiquistão', 'Tanzania': 'Tanzânia', 'Tailandia': 'Tailândia', 'Timor Oriental': 'Timor-Leste',
+  'Togo': 'Togo', 'Tonga': 'Tonga', 'Trinidad y Tobago': 'Trinidad e Tobago', 'Túnez': 'Tunísia', 'Turquía': 'Turquia',
+  'Turkmenistán': 'Turcomenistão', 'Uganda': 'Uganda', 'Ucrania': 'Ucrânia', 'Emiratos Árabes Unidos': 'Emirados Árabes Unidos',
+  'Estados Unidos': 'Estados Unidos', 'Uruguay': 'Uruguai', 'Uzbekistán': 'Uzbequistão', 'Vanuatu': 'Vanuatu', 'Venezuela': 'Venezuela',
+  'Vietnam': 'Vietnã', 'Gales': 'País de Gales', 'Yemen': 'Iêmen', 'Zambia': 'Zâmbia', 'Zimbabue': 'Zimbábue',
+  
+  // Francês
+  'Albanie': 'Albânia', 'Algérie': 'Argélia', 'Andorre': 'Andorra', 'Antigua-et-Barbuda': 'Antígua e Barbuda', 'Argentine': 'Argentina',
+  'Arménie': 'Armênia', 'Australie': 'Austrália', 'Autriche': 'Áustria', 'Azerbaïdjan': 'Azerbaijão', 'Bahamas': 'Bahamas',
+  'Bahreïn': 'Bahrein', 'Bangladesh': 'Bangladesh', 'Barbade': 'Barbados', 'Biélorussie': 'Bielorrússia', 'Belgique': 'Bélgica',
+  'Belize': 'Belize', 'Bénin': 'Benin', 'Bermudes': 'Bermudas', 'Bhoutan': 'Butão', 'Birmanie': 'Mianmar',
+  'Bolivie': 'Bolívia', 'Bosnie-Herzégovine': 'Bósnia e Herzegovina', 'Botswana': 'Botsuana', 'Brésil': 'Brasil', 'Brunei': 'Brunei',
+  'Bulgarie': 'Bulgária', 'Burkina': 'Burkina Faso', 'Burundi': 'Burundi', 'Cambodge': 'Camboja', 'Cameroun': 'Camarões',
+  'Canada': 'Canadá', 'Cap-Vert': 'Cabo Verde', 'République Centrafricaine': 'República Centro-Africana', 'Tchad': 'Chade', 'Chili': 'Chile',
+  'Chine': 'China', 'Chypre': 'Chipre', 'Colombie': 'Colômbia', 'Comores': 'Comores', 'Congo': 'Congo',
+  'Corée': 'Coreia', 'Corée du Nord': 'Coreia do Norte', 'Corée du Sud': 'Coreia do Sul', 'Costa Rica': 'Costa Rica', 'Côte d\'Ivoire': 'Costa do Marfim',
+  'Croatie': 'Croácia', 'Cuba': 'Cuba', 'Danemark': 'Dinamarca', 'Djibouti': 'Djibuti', 'Dominique': 'Dominica',
+  'Égypte': 'Egito', 'Émirats Arabes Unis': 'Emirados Árabes Unidos', 'Équateur': 'Equador', 'Érythrée': 'Eritreia', 'Espagne': 'Espanha',
+  'Estonie': 'Estônia', 'États-Unis': 'Estados Unidos', 'Éthiopie': 'Etiópia', 'Fidji': 'Fiji', 'Finlande': 'Finlândia',
+  'France': 'França', 'Gabon': 'Gabão', 'Gambie': 'Gâmbia', 'Géorgie': 'Geórgia', 'Ghana': 'Gana',
+  'Gibraltar': 'Gibraltar', 'Grèce': 'Grécia', 'Grenade': 'Granada', 'Groenland': 'Groenlândia', 'Guadeloupe': 'Guadalupe',
+  'Guam': 'Guam', 'Guatemala': 'Guatemala', 'Guernesey': 'Guernsey', 'Guinée': 'Guiné', 'Guinée équatoriale': 'Guiné Equatorial',
+  'Guinée-Bissau': 'Guiné-Bissau', 'Guyana': 'Guiana', 'Guyane française': 'Guiana Francesa', 'Haïti': 'Haiti', 'Honduras': 'Honduras',
+  'Hong Kong': 'Hong Kong', 'Hongrie': 'Hungria', 'Île Bouvet': 'Ilha Bouvet', 'Île Christmas': 'Ilha Christmas', 'Île Norfolk': 'Ilha Norfolk',
+  'Îles Åland': 'Ilhas Åland', 'Îles Caïmans': 'Ilhas Cayman', 'Îles Cocos': 'Ilhas Cocos', 'Îles Féroé': 'Ilhas Faroé',
+  'Îles Heard et McDonald': 'Ilhas Heard e McDonald', 'Îles Malouines': 'Ilhas Malvinas', 'Îles Mariannes du Nord': 'Ilhas Marianas do Norte',
+  'Îles Marshall': 'Ilhas Marshall', 'Îles Pitcairn': 'Ilhas Pitcairn', 'Îles Salomon': 'Ilhas Salomão', 'Îles Turques-et-Caïques': 'Ilhas Turcos e Caicos',
+  'Îles Vierges britanniques': 'Ilhas Virgens Britânicas', 'Îles Vierges des États-Unis': 'Ilhas Virgens Americanas', 'Inde': 'Índia',
+  'Indonésie': 'Indonésia', 'Irak': 'Iraque', 'Iran': 'Irã', 'Irlande': 'Irlanda', 'Irlande du Nord': 'Irlanda do Norte',
+  'Islande': 'Islândia', 'Israël': 'Israel', 'Italie': 'Itália', 'Jamaïque': 'Jamaica', 'Japon': 'Japão',
+  'Jersey': 'Jersey', 'Jordanie': 'Jordânia', 'Kazakhstan': 'Cazaquistão', 'Kenya': 'Quênia', 'Kirghizistan': 'Quirguistão',
+  'Kiribati': 'Kiribati', 'Kosovo': 'Kosovo', 'Koweït': 'Kuwait', 'Laos': 'Laos', 'Lesotho': 'Lesoto',
+  'Lettonie': 'Letônia', 'Liban': 'Líbano', 'Liberia': 'Libéria', 'Libye': 'Líbia', 'Liechtenstein': 'Liechtenstein',
+  'Lituanie': 'Lituânia', 'Luxembourg': 'Luxemburgo', 'Macao': 'Macau', 'Macédoine': 'Macedônia', 'Madagascar': 'Madagascar',
+  'Malaisie': 'Malásia', 'Malawi': 'Malaui', 'Maldives': 'Maldivas', 'Mali': 'Mali', 'Malte': 'Malta',
+  'Maroc': 'Marrocos', 'Martinique': 'Martinica', 'Mauritanie': 'Mauritânia', 'Maurice': 'Maurício', 'Mayotte': 'Maiote',
+  'Mexique': 'México', 'Micronésie': 'Micronésia', 'Moldavie': 'Moldávia', 'Monaco': 'Mônaco', 'Mongolie': 'Mongólia',
+  'Monténégro': 'Montenegro', 'Montserrat': 'Montserrat', 'Mozambique': 'Moçambique', 'Namibie': 'Namíbia', 'Nauru': 'Nauru',
+  'Népal': 'Nepal', 'Nicaragua': 'Nicarágua', 'Niger': 'Níger', 'Nigeria': 'Nigéria', 'Niue': 'Niue',
+  'Norvège': 'Noruega', 'Nouvelle-Calédonie': 'Nova Caledônia', 'Nouvelle-Zélande': 'Nova Zelândia', 'Oman': 'Omã', 'Ouganda': 'Uganda',
+  'Ouzbékistan': 'Uzbequistão', 'Pakistan': 'Paquistão', 'Palaos': 'Palau', 'Palestine': 'Palestina', 'Panama': 'Panamá',
+  'Papouasie-Nouvelle-Guinée': 'Papua Nova Guiné', 'Paraguay': 'Paraguai', 'Pays-Bas': 'Holanda', 'Pérou': 'Peru', 'Philippines': 'Filipinas',
+  'Pologne': 'Polônia', 'Polynésie française': 'Polinésia Francesa', 'Porto Rico': 'Porto Rico', 'Portugal': 'Portugal', 'Qatar': 'Catar',
+  'La Réunion': 'Reunião', 'Roumanie': 'Romênia', 'Royaume-Uni': 'Reino Unido', 'Russie': 'Rússia', 'Rwanda': 'Ruanda',
+  'Sahara occidental': 'Saara Ocidental', 'Saint-Barthélemy': 'São Bartolomeu', 'Saint-Marin': 'San Marino', 'Saint-Martin': 'São Martinho',
+  'Saint-Pierre-et-Miquelon': 'Saint-Pierre e Miquelon', 'Saint-Vincent-et-les-Grenadines': 'São Vicente e Granadinas', 'Sainte-Hélène': 'Santa Helena',
+  'Sainte-Lucie': 'Santa Lúcia', 'Samoa': 'Samoa', 'Samoa américaines': 'Samoa Americana', 'Sao Tomé-et-Principe': 'São Tomé e Príncipe',
+  'Sénégal': 'Senegal', 'Serbie': 'Sérvia', 'Seychelles': 'Seicheles', 'Sierra Leone': 'Serra Leoa', 'Singapour': 'Singapura',
+  'Sint Maarten': 'Sint Maarten', 'Slovaquie': 'Eslováquia', 'Slovénie': 'Eslovênia', 'Somalie': 'Somália', 'Soudan': 'Sudão',
+  'Soudan du Sud': 'Sudão do Sul', 'Sri Lanka': 'Sri Lanka', 'Suède': 'Suécia', 'Suisse': 'Suíça', 'Suriname': 'Surinã',
+  'Swaziland': 'Eswatíni', 'Syrie': 'Síria', 'Tadjikistan': 'Tajiquistão', 'Taïwan': 'Taiwan', 'Tanzanie': 'Tanzânia',
+  'Tchéquie': 'República Tcheca', 'Terres australes françaises': 'Terras Austrais Francesas', 'Thaïlande': 'Tailândia', 'Timor oriental': 'Timor-Leste',
+  'Togo': 'Togo', 'Tokelau': 'Toquelau', 'Tonga': 'Tonga', 'Trinité-et-Tobago': 'Trinidad e Tobago', 'Tunisie': 'Tunísia',
+  'Turkménistan': 'Turcomenistão', 'Turquie': 'Turquia', 'Tuvalu': 'Tuvalu', 'Ukraine': 'Ucrânia', 'Uruguay': 'Uruguai',
+  'Vanuatu': 'Vanuatu', 'Vatican': 'Vaticano', 'Venezuela': 'Venezuela', 'Viêt Nam': 'Vietnã', 'Wallis-et-Futuna': 'Wallis e Futuna',
+  'Yémen': 'Iêmen', 'Zambie': 'Zâmbia', 'Zimbabwe': 'Zimbábue',`;
+
+// Encontrar a última entrada do mapeamento (antes de '};')
+const match = content.match(/('SA': 'SA',\n)/);
+if (match) {
+  content = content.replace(match[0], match[0] + additionalTranslations + '\n');
+  fs.writeFileSync(file, content, 'utf-8');
+  console.log('✅ Traduções de países em espanhol e francês adicionadas!');
+} else {
+  console.log('❌ Não foi possível encontrar o ponto de inserção');
+}

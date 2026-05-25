@@ -153,3 +153,14 @@
 - [x] Otimizar velocidade reduzindo delays entre requisições
 - [x] Melhorar lógica de parsing de posições
 - [x] Testar com diferentes jogadores e ligas
+
+
+## Extração de Times (Sprint 9)
+
+- [x] Analisar estrutura HTML da página de times
+- [x] Criar interface Team com campos: imagem, nome, liga, orçamento, rival, prestígio internacional, prestígio local, estádio
+- [x] Implementar funções de extração de times (scrapeSofifaTeams, extractTeams)
+- [x] Criar UI com aba separada para Times
+- [x] Adicionar rota tRPC para extração de times
+- [x] Implementar download de imagens e JSON para times
+- [ ] Testar extração com link fornecido

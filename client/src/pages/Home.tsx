@@ -18,6 +18,17 @@ interface Player {
   valorMercado?: string;
 }
 
+interface Team {
+  imagem?: string;
+  nome: string;
+  liga: string;
+  orcamento: string;
+  rival: string;
+  prestigioInternacional: string | number;
+  prestigioLocal: string | number;
+  estadio: string;
+}
+
 interface ScraperResult {
   success: boolean;
   error: string | null;
@@ -25,9 +36,18 @@ interface ScraperResult {
   count?: number;
 }
 
+interface TeamResult {
+  success: boolean;
+  error: string | null;
+  teams: Team[];
+  count?: number;
+}
+
 export default function Home() {
+  const [mode, setMode] = useState<'players' | 'teams'>('players');
   const [url, setUrl] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isBatchMode, setIsBatchMode] = useState(false);
@@ -38,6 +58,8 @@ export default function Home() {
   const extractMutation = trpc.scraper.extractPlayers.useMutation();
   const extractBatchMutation = trpc.scraper.extractPlayersBatch.useMutation();
   const downloadImagesMutation = trpc.scraper.downloadImages.useMutation();
+  const extractTeamsMutation = trpc.scraper.extractTeams.useMutation();
+  const downloadTeamImagesMutation = trpc.scraper.downloadTeamImages.useMutation();
 
   const handleExtract = async () => {
     setError(null);
@@ -198,18 +220,54 @@ export default function Home() {
     }
   };
 
+  const handleExtractTeams = async () => {
+    setError(null);
+    setTeams([]);
+
+    if (!url.trim()) {
+      setError("Por favor, cole uma URL do SoFIFA");
+      return;
+    }
+
+    if (!url.includes("sofifa.com")) {
+      setError("A URL deve ser do site sofifa.com");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = (await extractTeamsMutation.mutateAsync({ url })) as TeamResult;
+
+      if (!result.success) {
+        setError(result.error || "Erro desconhecido ao extrair dados");
+        return;
+      }
+
+      setTeams(result.teams || []);
+      toast.success(`${result.count || result.teams?.length || 0} times extraídos com sucesso!`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao extrair dados";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDownloadJSON = () => {
-    if (players.length === 0) {
+    const data = mode === 'players' ? players : teams;
+    if (data.length === 0) {
       toast.error("Nenhum dado para baixar");
       return;
     }
 
-    const jsonData = JSON.stringify(players, null, 2);
+    const jsonData = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `sofifa_players_${new Date().toISOString().split("T")[0]}.json`;
+    link.download = `sofifa_${mode === 'players' ? 'players' : 'teams'}_${new Date().toISOString().split("T")[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -218,302 +276,519 @@ export default function Home() {
   };
 
   const handleDownloadImages = async () => {
-    if (players.length === 0) {
-      toast.error("Nenhum jogador para baixar imagens");
-      return;
-    }
-
-    const playersWithImages = players.filter((p: Player) => p.imagem);
-    if (playersWithImages.length === 0) {
-      toast.error("Nenhuma imagem disponível para download");
-      return;
-    }
-
-    try {
-      const result = await downloadImagesMutation.mutateAsync({ players: playersWithImages });
-      
-      if (result.success && result.data) {
-        const binaryString = atob(result.data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: "application/zip" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `imagens_jogadores_${new Date().toISOString().split("T")[0]}.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success(`${playersWithImages.length} imagens baixadas com sucesso!`);
-      } else {
-        toast.error(result.message || "Erro ao fazer download das imagens");
+    if (mode === 'players') {
+      if (players.length === 0) {
+        toast.error("Nenhum jogador para baixar imagens");
+        return;
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao fazer download das imagens";
-      toast.error(errorMessage);
+
+      const playersWithImages = players.filter((p: Player) => p.imagem);
+      if (playersWithImages.length === 0) {
+        toast.error("Nenhuma imagem disponível para download");
+        return;
+      }
+
+      try {
+        const result = await downloadImagesMutation.mutateAsync({ players: playersWithImages });
+        
+        if (result.success && result.data) {
+          const binaryString = atob(result.data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: "application/zip" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `imagens_jogadores_${new Date().toISOString().split("T")[0]}.zip`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          toast.success(`${playersWithImages.length} imagens baixadas com sucesso!`);
+        } else {
+          toast.error(result.message || "Erro ao fazer download das imagens");
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Erro ao fazer download das imagens";
+        toast.error(errorMessage);
+      }
+    } else {
+      if (teams.length === 0) {
+        toast.error("Nenhum time para baixar imagens");
+        return;
+      }
+
+      const teamsWithImages = teams.filter((t: Team) => t.imagem);
+      if (teamsWithImages.length === 0) {
+        toast.error("Nenhuma imagem disponível para download");
+        return;
+      }
+
+      try {
+        const result = await downloadTeamImagesMutation.mutateAsync({ teams: teamsWithImages });
+        
+        if (result.success && result.data) {
+          const binaryString = atob(result.data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: "application/zip" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `imagens_times_${new Date().toISOString().split("T")[0]}.zip`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          toast.success(`${teamsWithImages.length} imagens baixadas com sucesso!`);
+        } else {
+          toast.error(result.message || "Erro ao fazer download das imagens");
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Erro ao fazer download das imagens";
+        toast.error(errorMessage);
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">SoFIFA Web Scraper</h1>
-          <p className="text-slate-600">Extraia dados de jogadores do SoFIFA e gere um arquivo JSON estruturado</p>
+          <p className="text-slate-600">Extraia dados de jogadores e times do SoFIFA e gere arquivos JSON estruturados</p>
         </div>
 
-        {/* Mode Selector */}
+        {/* Mode Selector - Top Level */}
         <div className="mb-6 flex flex-col gap-4">
           <div className="flex gap-2 justify-center">
             <Button
-              onClick={() => setIsBatchMode(false)}
-              variant={!isBatchMode ? "default" : "outline"}
-              className={!isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+              onClick={() => {
+                setMode('players');
+                setError(null);
+                setPlayers([]);
+                setTeams([]);
+              }}
+              variant={mode === 'players' ? "default" : "outline"}
+              className={mode === 'players' ? "bg-blue-600 hover:bg-blue-700" : ""}
             >
-              Extração Simples
+              Jogadores
             </Button>
             <Button
-              onClick={() => setIsBatchMode(true)}
-              variant={isBatchMode ? "default" : "outline"}
-              className={isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+              onClick={() => {
+                setMode('teams');
+                setError(null);
+                setPlayers([]);
+                setTeams([]);
+              }}
+              variant={mode === 'teams' ? "default" : "outline"}
+              className={mode === 'teams' ? "bg-blue-600 hover:bg-blue-700" : ""}
             >
-              Extração em Lote
+              Times
             </Button>
           </div>
         </div>
 
-        {/* Input Card */}
-        <Card className="mb-6 shadow-lg">
-          <CardHeader>
-            <CardTitle>
-              {isBatchMode
-                ? "Extrair Jogadores em Lote"
-                : "Extrair Jogadores"}
-            </CardTitle>
-            <CardDescription>
-              {isBatchMode
-                ? "Extraia múltiplas páginas consecutivas fornecendo um intervalo de offsets"
-                : "Cole a URL da página do SoFIFA que deseja extrair"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">URL do SoFIFA</label>
-              <Input
-                placeholder="https://sofifa.com/players?type=all&aeh=23&col=pt&sort=desc&offset=60"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                disabled={isLoading}
-                className="bg-white"
-              />
+        {/* Players Mode */}
+        {mode === 'players' && (
+          <>
+            {/* Mode Selector for Players */}
+            <div className="mb-6 flex flex-col gap-4">
+              <div className="flex gap-2 justify-center">
+                <Button
+                  onClick={() => setIsBatchMode(false)}
+                  variant={!isBatchMode ? "default" : "outline"}
+                  className={!isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+                >
+                  Extração Simples
+                </Button>
+                <Button
+                  onClick={() => setIsBatchMode(true)}
+                  variant={isBatchMode ? "default" : "outline"}
+                  className={isBatchMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+                >
+                  Extração em Lote
+                </Button>
+              </div>
             </div>
 
-            {isBatchMode && (
-              <>
-                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <input
-                    type="checkbox"
-                    id="extractAllPages"
-                    checked={extractAllPages}
-                    onChange={(e) => setExtractAllPages(e.target.checked)}
+            {/* Input Card for Players */}
+            <Card className="mb-6 shadow-lg">
+              <CardHeader>
+                <CardTitle>
+                  {isBatchMode
+                    ? "Extrair Jogadores em Lote"
+                    : "Extrair Jogadores"}
+                </CardTitle>
+                <CardDescription>
+                  {isBatchMode
+                    ? "Extraia múltiplas páginas consecutivas fornecendo um intervalo de offsets"
+                    : "Cole a URL da página do SoFIFA que deseja extrair"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">URL do SoFIFA</label>
+                  <Input
+                    placeholder="https://sofifa.com/players?type=all&aeh=23&col=pt&sort=desc&offset=60"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
                     disabled={isLoading}
-                    className="w-4 h-4 rounded"
+                    className="bg-white"
                   />
-                  <label htmlFor="extractAllPages" className="text-sm font-medium text-green-700 cursor-pointer">
-                    Extrair todas as 15 paginas (0-1200 offsets)
-                  </label>
                 </div>
 
-                {!extractAllPages && (
-                  <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Offset Inicial</label>
-                    <Input
-                      type="number"
-                      value={startOffset}
-                      onChange={(e) => setStartOffset(Math.max(0, parseInt(e.target.value) || 0))}
-                      disabled={isLoading}
-                      className="bg-white"
-                      min="0"
-                      step="60"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Offset Final</label>
-                    <Input
-                      type="number"
-                      value={endOffset}
-                      onChange={(e) => setEndOffset(Math.max(startOffset, parseInt(e.target.value) || 0))}
-                      disabled={isLoading}
-                      className="bg-white"
-                      min="0"
-                      step="60"
-                    />
-                  </div>
+                {isBatchMode && (
+                  <>
+                    <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <input
+                        type="checkbox"
+                        id="extractAllPages"
+                        checked={extractAllPages}
+                        onChange={(e) => setExtractAllPages(e.target.checked)}
+                        disabled={isLoading}
+                        className="w-4 h-4 rounded"
+                      />
+                      <label htmlFor="extractAllPages" className="text-sm font-medium text-green-700 cursor-pointer">
+                        Extrair todas as 15 paginas (0-1200 offsets)
+                      </label>
+                    </div>
+
+                    {!extractAllPages && (
+                      <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Offset Inicial</label>
+                        <Input
+                          type="number"
+                          value={startOffset}
+                          onChange={(e) => setStartOffset(Math.max(0, parseInt(e.target.value) || 0))}
+                          disabled={isLoading}
+                          className="bg-white"
+                          min="0"
+                          step="60"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Offset Final</label>
+                        <Input
+                          type="number"
+                          value={endOffset}
+                          onChange={(e) => setEndOffset(Math.max(startOffset, parseInt(e.target.value) || 0))}
+                          disabled={isLoading}
+                          className="bg-white"
+                          min="0"
+                          step="60"
+                        />
+                      </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-blue-700">
+                        {extractAllPages
+                          ? "Serão extraídas todas as 15 páginas (~900 jogadores). Isso pode levar alguns minutos."
+                          : "Cada página contém ~60 jogadores. Use offsets em múltiplos de 60 (0, 60, 120, 180...). Máximo de 1200 offsets por vez (20 páginas)."}
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {error && (
+                  <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">{error}</p>
                   </div>
                 )}
+
+                <Button
+                  onClick={isBatchMode ? handleExtractBatch : handleExtract}
+                  disabled={isLoading || !url.trim()}
+                  className="w-full text-white bg-blue-600 hover:bg-blue-700"
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {isBatchMode ? (extractAllPages ? "Extraindo todas as páginas..." : "Extraindo em lote...") : "Extraindo..."}
+                    </>
+                  ) : isBatchMode ? (
+                    extractAllPages ? "Extrair Todas as 15 Páginas" : "Extrair em Lote"
+                  ) : (
+                    "Extrair Jogadores"
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Results - Players */}
+            {players.length > 0 && (
+              <Card className="shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      Resultados da Extração
+                    </CardTitle>
+                    <CardDescription>{players.length} jogadores encontrados</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleDownloadJSON}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      size="sm"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Baixar JSON
+                    </Button>
+                    <Button
+                      onClick={handleDownloadImages}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      size="sm"
+                      disabled={downloadImagesMutation.isPending}
+                    >
+                      {downloadImagesMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Baixando...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 mr-2" />
+                          Baixar Imagens (ZIP)
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50">
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Imagem</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Idade</th>
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Overall</th>
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Potencial</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Time</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">País</th>
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Valor Mercado</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Posições</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {players.map((player, idx) => (
+                          <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 text-center">
+                              {player.imagem ? (
+                                <img src={player.imagem} alt={player.nome} className="w-10 h-10 rounded object-cover" />
+                              ) : (
+                                <span className="text-slate-400 text-xs">-</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-slate-900 font-medium">{player.nome}</td>
+                            <td className="py-3 px-4 text-center text-slate-700">{player.idade}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">
+                                {player.overall}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded font-semibold">
+                                {player.potencial}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-700">{player.time}</td>
+                            <td className="py-3 px-4 text-slate-700">
+                              {player.pais ? (
+                                <span className="inline-block bg-amber-100 text-amber-800 px-2 py-1 rounded font-medium text-xs">
+                                  {player.pais}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {player.valorMercado ? (
+                                <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">
+                                  {player.valorMercado}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex flex-wrap gap-1">
+                                {player.posicoes.map((pos, posIdx) => (
+                                  <span
+                                    key={posIdx}
+                                    className="inline-block bg-slate-200 text-slate-800 px-2 py-1 rounded text-xs font-medium"
+                                  >
+                                    {pos}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Teams Mode */}
+        {mode === 'teams' && (
+          <>
+            {/* Input Card for Teams */}
+            <Card className="mb-6 shadow-lg">
+              <CardHeader>
+                <CardTitle>Extrair Times</CardTitle>
+                <CardDescription>Cole a URL da página de times do SoFIFA que deseja extrair</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">URL do SoFIFA</label>
+                  <Input
+                    placeholder="https://sofifa.com/teams?type=all&lg[]=4"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    disabled={isLoading}
+                    className="bg-white"
+                  />
+                </div>
 
                 <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-blue-700">
-                    {extractAllPages
-                      ? "Serão extraídas todas as 15 páginas (~900 jogadores). Isso pode levar alguns minutos."
-                      : "Cada página contém ~60 jogadores. Use offsets em múltiplos de 60 (0, 60, 120, 180...). Máximo de 1200 offsets por vez (20 páginas)."}
+                    Cole a URL de uma página de times do SoFIFA. Exemplo: https://sofifa.com/teams?type=all&lg[]=4
                   </p>
                 </div>
-              </>
-            )}
 
-            {error && (
-              <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
+                {error && (
+                  <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                )}
 
-            <Button
-              onClick={isBatchMode ? handleExtractBatch : handleExtract}
-              disabled={isLoading || !url.trim()}
-              className="w-full text-white bg-blue-600 hover:bg-blue-700"
-              size="lg"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {isBatchMode ? (extractAllPages ? "Extraindo todas as páginas..." : "Extraindo em lote...") : "Extraindo..."}
-                </>
-              ) : isBatchMode ? (
-                extractAllPages ? "Extrair Todas as 15 Páginas" : "Extrair em Lote"
-              ) : (
-                "Extrair Jogadores"
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Results - Players */}
-        {players.length > 0 && (
-          <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  Resultados da Extração
-                </CardTitle>
-                <CardDescription>{players.length} jogadores encontrados</CardDescription>
-              </div>
-              <div className="flex gap-2">
                 <Button
-                  onClick={handleDownloadJSON}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  size="sm"
+                  onClick={handleExtractTeams}
+                  disabled={isLoading || !url.trim()}
+                  className="w-full text-white bg-blue-600 hover:bg-blue-700"
+                  size="lg"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Baixar JSON
-                </Button>
-                <Button
-                  onClick={handleDownloadImages}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                  size="sm"
-                  disabled={downloadImagesMutation.isPending}
-                >
-                  {downloadImagesMutation.isPending ? (
+                  {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Baixando...
+                      Extraindo...
                     </>
                   ) : (
-                    <>
-                      <Download className="w-4 h-4 mr-2" />
-                      Baixar Imagens (ZIP)
-                    </>
+                    "Extrair Times"
                   )}
                 </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Imagem</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Idade</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Overall</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Potencial</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Time</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">País</th>
-                      <th className="text-center py-3 px-4 font-semibold text-slate-700">Valor Mercado</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Posições</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {players.map((player, idx) => (
-                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-3 px-4 text-center">
-                          {player.imagem ? (
-                            <img src={player.imagem} alt={player.nome} className="w-10 h-10 rounded object-cover" />
-                          ) : (
-                            <span className="text-slate-400 text-xs">-</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-slate-900 font-medium">{player.nome}</td>
-                        <td className="py-3 px-4 text-center text-slate-700">{player.idade}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">
-                            {player.overall}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded font-semibold">
-                            {player.potencial}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-slate-700">{player.time}</td>
-                        <td className="py-3 px-4 text-slate-700">
-                          {player.pais ? (
-                            <span className="inline-block bg-amber-100 text-amber-800 px-2 py-1 rounded font-medium text-xs">
-                              {player.pais}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          {player.valorMercado ? (
-                            <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">
-                              {player.valorMercado}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {player.posicoes.map((pos, posIdx) => (
-                              <span
-                                key={posIdx}
-                                className="inline-block bg-slate-200 text-slate-800 px-2 py-1 rounded text-xs font-medium"
-                              >
-                                {pos}
+              </CardContent>
+            </Card>
+
+            {/* Results - Teams */}
+            {teams.length > 0 && (
+              <Card className="shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      Resultados da Extração
+                    </CardTitle>
+                    <CardDescription>{teams.length} times encontrados</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleDownloadJSON}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      size="sm"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Baixar JSON
+                    </Button>
+                    <Button
+                      onClick={handleDownloadImages}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      size="sm"
+                      disabled={downloadTeamImagesMutation.isPending}
+                    >
+                      {downloadTeamImagesMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Baixando...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 mr-2" />
+                          Baixar Imagens (ZIP)
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50">
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Logo</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Liga</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Orçamento</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Rival</th>
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Prestígio Int.</th>
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Prestígio Local</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Estádio</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {teams.map((team, idx) => (
+                          <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 text-center">
+                              {team.imagem ? (
+                                <img src={team.imagem} alt={team.nome} className="w-10 h-10 rounded object-cover" />
+                              ) : (
+                                <span className="text-slate-400 text-xs">-</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-slate-900 font-medium">{team.nome}</td>
+                            <td className="py-3 px-4 text-slate-700">{team.liga}</td>
+                            <td className="py-3 px-4 text-slate-700">{team.orcamento}</td>
+                            <td className="py-3 px-4 text-slate-700">{team.rival}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">
+                                {team.prestigioInternacional}
                               </span>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded font-semibold">
+                                {team.prestigioLocal}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-700">{team.estadio}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
-
-
       </div>
     </div>
   );
